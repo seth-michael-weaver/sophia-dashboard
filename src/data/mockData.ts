@@ -2,7 +2,7 @@ export interface Student {
   id: string;
   name: string;
   avatar: string;
-  unit: "Anesthesia" | "Surgery" | "Internal Medicine";
+  unit: "Anesthesia" | "Surgery" | "Internal Medicine" | "Advanced Practice Providers";
   walkthroughComplete: number; // 0-100
   verificationStatus: "Not Started" | "In Progress" | "Verified";
   latestScore: number;
@@ -37,6 +37,8 @@ export const students: Student[] = [
   { id: "8", name: "Ryan Foster", avatar: "RF", unit: "Surgery", walkthroughComplete: 60, verificationStatus: "Not Started", latestScore: 61, lastActivity: "2 days ago", deadline: "2026-02-13", daysRemaining: 2, needsPractice: true, currentModule: "Module 3: Femoral Access" },
   { id: "9", name: "Maria Gonzalez", avatar: "MG", unit: "Internal Medicine", walkthroughComplete: 95, verificationStatus: "In Progress", latestScore: 88, lastActivity: "4 hrs ago", deadline: "2026-02-22", daysRemaining: 11, needsPractice: false, currentModule: "Module 5: Advanced Lines" },
   { id: "10", name: "Tom Bradley", avatar: "TB", unit: "Anesthesia", walkthroughComplete: 15, verificationStatus: "Not Started", latestScore: 38, lastActivity: "1 week ago", deadline: "2026-02-10", daysRemaining: -1, needsPractice: true, currentModule: "Module 1: Anatomy Review" },
+  { id: "11", name: "Rachel Nguyen", avatar: "RN", unit: "Advanced Practice Providers", walkthroughComplete: 80, verificationStatus: "In Progress", latestScore: 79, lastActivity: "6 hrs ago", deadline: "2026-02-19", daysRemaining: 8, needsPractice: false, currentModule: "Module 4: Subclavian Access" },
+  { id: "12", name: "Chris Howard", avatar: "CH", unit: "Advanced Practice Providers", walkthroughComplete: 55, verificationStatus: "Not Started", latestScore: 52, lastActivity: "2 days ago", deadline: "2026-02-15", daysRemaining: 4, needsPractice: true, currentModule: "Module 2: Ultrasound Guidance" },
 ];
 
 export const errorTypes: ErrorType[] = [

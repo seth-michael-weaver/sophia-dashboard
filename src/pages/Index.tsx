@@ -9,6 +9,7 @@ import CaseDifficulty from "@/components/dashboard/CaseDifficulty";
 
 const Index = () => {
   const [activeUnit, setActiveUnit] = useState("All");
+  const [activeStatus, setActiveStatus] = useState("");
 
   return (
     <div className="min-h-screen bg-background">
@@ -17,20 +18,20 @@ const Index = () => {
         {/* Summary strip */}
         <SummaryCards activeUnit={activeUnit} onUnitChange={setActiveUnit} />
 
-        {/* Row 1: Progress + Licenses */}
+        {/* Row 1: Progress + Errors + Licenses */}
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <ProgressChart />
+          <ProgressChart activeStatus={activeStatus} onStatusChange={setActiveStatus} />
           <ErrorAnalytics />
           <LicenseWidget />
         </div>
 
         {/* Row 2: Student table */}
-        <StudentTable activeUnit={activeUnit} />
+        <StudentTable activeUnit={activeUnit} activeStatus={activeStatus} />
 
         {/* Row 3: Case difficulty */}
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <CaseDifficulty />
-          {/* Activity feed placeholder */}
+          {/* Activity feed */}
           <div className="rounded-xl bg-card p-5 shadow-card animate-fade-in">
             <h3 className="text-sm font-semibold text-foreground mb-1">Recent Activity</h3>
             <p className="text-xs text-muted-foreground mb-4">Latest training events</p>
