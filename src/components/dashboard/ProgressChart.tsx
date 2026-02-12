@@ -2,9 +2,9 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
 const data = [
   { name: "Walkthrough Complete", value: 45, color: "hsl(217, 91%, 60%)" },
-  { name: "Verification Done", value: 18, color: "hsl(152, 69%, 41%)" },
-  { name: "In Progress", value: 25, color: "hsl(38, 92%, 50%)" },
-  { name: "Not Started", value: 12, color: "hsl(214, 20%, 90%)" },
+  { name: "Verification Done", value: 18, color: "hsl(210, 78%, 46%)" },
+  { name: "In Progress", value: 25, color: "hsl(199, 89%, 48%)" },
+  { name: "Not Started", value: 12, color: "hsl(214, 32%, 78%)" },
 ];
 
 interface ProgressChartProps {
