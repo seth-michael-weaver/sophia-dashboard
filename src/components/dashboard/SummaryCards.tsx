@@ -34,7 +34,7 @@ interface SummaryCardsProps {
   onUnitChange: (unit: string) => void;
 }
 
-const units = ["All", "Anesthesia", "Surgery", "Internal Medicine"];
+const units = ["All", "Anesthesia", "Surgery", "Internal Medicine", "Advanced Practice Providers"];
 
 const SummaryCards = ({ activeUnit, onUnitChange }: SummaryCardsProps) => {
   const { totalStudents, activeToday, completedPercent, licensesUsed, licensesTotal } = summaryStats;
