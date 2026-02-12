@@ -3,9 +3,9 @@ import { errorTypes } from "@/data/mockData";
 import { AlertTriangle } from "lucide-react";
 
 const severityColors: Record<string, string> = {
-  critical: "hsl(0, 72%, 51%)",
-  moderate: "hsl(38, 92%, 50%)",
-  minor: "hsl(214, 20%, 75%)",
+  critical: "hsl(0, 65%, 48%)",
+  moderate: "hsl(217, 71%, 53%)",
+  minor: "hsl(214, 32%, 78%)",
 };
 
 const ErrorAnalytics = () => {
