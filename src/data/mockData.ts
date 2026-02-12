@@ -41,13 +41,11 @@ export const students: Student[] = [
 
 export const errorTypes: ErrorType[] = [
   { name: "Arterial Puncture", count: 23, severity: "critical" },
-  { name: "Prolonged Arrhythmia", count: 18, severity: "critical" },
-  { name: "Through-and-Through", count: 15, severity: "critical" },
-  { name: "Pneumothorax", count: 12, severity: "moderate" },
-  { name: "Guidewire Misplacement", count: 9, severity: "moderate" },
-  { name: "Catheter Malposition", count: 7, severity: "minor" },
-  { name: "Air Embolism Risk", count: 5, severity: "critical" },
-  { name: "Hematoma Formation", count: 4, severity: "minor" },
+  { name: "Through-and-Through", count: 18, severity: "critical" },
+  { name: "Guidewire Misplacement", count: 15, severity: "moderate" },
+  { name: "Prolonged Arrhythmia", count: 12, severity: "critical" },
+  { name: "Excessive Cannulation Attempts", count: 9, severity: "moderate" },
+  { name: "Failed Cannulation Attempts", count: 6, severity: "critical" },
 ];
 
 export const patientCases: PatientCase[] = [
