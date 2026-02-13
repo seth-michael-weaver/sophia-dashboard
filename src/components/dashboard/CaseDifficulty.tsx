@@ -4,20 +4,25 @@ import { ScatterChart, Scatter, XAxis, YAxis, ZAxis, ResponsiveContainer, Toolti
 import { Target } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-type AxisKey = "errorRate" | "avgScore" | "attempts" | "successRate" | "insertions";
+type AxisKey = "errorRate" | "avgScore" | "attempts" | "successRate" | "completions";
 
 const axisOptions: { value: AxisKey; label: string }[] = [
   { value: "errorRate", label: "Error Rate %" },
   { value: "avgScore", label: "Avg Score" },
   { value: "attempts", label: "Attempts" },
   { value: "successRate", label: "Success Rate %" },
-  { value: "insertions", label: "Insertions" },
+  { value: "completions", label: "Completions" },
 ];
+
+const difficultyColors: Record<string, string> = {
+  Easy: "hsl(142, 71%, 45%)",
+  Moderate: "hsl(38, 92%, 50%)",
+  Hard: "hsl(0, 65%, 48%)",
+};
 
 const enrichedCases = patientCases.map((c) => ({
   ...c,
   successRate: 100 - c.errorRate,
-  insertions: Math.round(c.attempts * (1 - c.errorRate / 100)),
 }));
 
 const CaseDifficulty = () => {
@@ -33,92 +38,74 @@ const CaseDifficulty = () => {
         <Target className="h-4 w-4 text-primary" />
         <h3 className="text-sm font-semibold text-foreground">Case Difficulty</h3>
       </div>
-      <p className="mb-3 text-xs text-muted-foreground">Actionable priority by patient case</p>
+      <p className="mb-3 text-xs text-muted-foreground">Actionable priority by patient case · Color = difficulty</p>
+
+      {/* Legend */}
+      <div className="flex items-center gap-3 mb-3">
+        {Object.entries(difficultyColors).map(([name, color]) => (
+          <div key={name} className="flex items-center gap-1">
+            <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
+            <span className="text-[10px] text-muted-foreground">{name}</span>
+          </div>
+        ))}
+      </div>
 
       {/* Axis selectors */}
       <div className="flex items-center gap-3 mb-4">
         <div className="flex items-center gap-1.5">
           <span className="text-[10px] font-semibold text-muted-foreground uppercase">X:</span>
           <Select value={xAxis} onValueChange={(v) => setXAxis(v as AxisKey)}>
-            <SelectTrigger className="h-7 w-[130px] text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {axisOptions.map((o) => (
-                <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>
-              ))}
-            </SelectContent>
+            <SelectTrigger className="h-7 w-[130px] text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>{axisOptions.map((o) => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}</SelectContent>
           </Select>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="text-[10px] font-semibold text-muted-foreground uppercase">Y:</span>
           <Select value={yAxis} onValueChange={(v) => setYAxis(v as AxisKey)}>
-            <SelectTrigger className="h-7 w-[130px] text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {axisOptions.map((o) => (
-                <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>
-              ))}
-            </SelectContent>
+            <SelectTrigger className="h-7 w-[130px] text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>{axisOptions.map((o) => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}</SelectContent>
           </Select>
         </div>
       </div>
 
-      <div className="h-[200px]">
+      <div className="h-[220px]">
         <ResponsiveContainer width="100%" height="100%">
           <ScatterChart margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(214, 20%, 92%)" />
             <XAxis
-              type="number"
-              dataKey={xAxis}
-              name={xLabel}
+              type="number" dataKey={xAxis} name={xLabel}
               tick={{ fontSize: 10, fill: "hsl(215, 14%, 46%)" }}
-              axisLine={false}
-              tickLine={false}
+              axisLine={false} tickLine={false}
               label={{ value: xLabel, position: "insideBottom", offset: -2, fontSize: 10, fill: "hsl(215, 14%, 46%)" }}
             />
             <YAxis
-              type="number"
-              dataKey={yAxis}
-              name={yLabel}
+              type="number" dataKey={yAxis} name={yLabel}
               tick={{ fontSize: 10, fill: "hsl(215, 14%, 46%)" }}
-              axisLine={false}
-              tickLine={false}
+              axisLine={false} tickLine={false}
               label={{ value: yLabel, angle: -90, position: "insideLeft", offset: 24, fontSize: 10, fill: "hsl(215, 14%, 46%)" }}
             />
             <ZAxis type="number" dataKey="attempts" range={[40, 200]} name="Attempts" />
             <Tooltip
               contentStyle={{
-                background: "hsl(0 0% 100%)",
-                border: "1px solid hsl(214 20% 90%)",
-                borderRadius: "8px",
-                fontSize: "12px",
-                boxShadow: "0 4px 12px -2px rgba(0,0,0,0.1)",
+                background: "hsl(0 0% 100%)", border: "1px solid hsl(214 20% 90%)",
+                borderRadius: "8px", fontSize: "12px", boxShadow: "0 4px 12px -2px rgba(0,0,0,0.1)",
               }}
-              labelFormatter={(_, payload) => {
-                if (payload?.[0]) return payload[0].payload.caseName;
-                return "";
-              }}
+              labelFormatter={(_, payload) => payload?.[0] ? payload[0].payload.caseName : ""}
+              formatter={(value: number, name: string) => [value, name]}
             />
-            <Scatter data={enrichedCases} fill="hsl(217, 91%, 60%)" fillOpacity={0.7} stroke="hsl(217, 91%, 50%)" strokeWidth={1} />
+            {["Easy", "Moderate", "Hard"].map((diff) => (
+              <Scatter
+                key={diff}
+                data={enrichedCases.filter((c) => c.difficulty === diff)}
+                fill={difficultyColors[diff]}
+                fillOpacity={0.7}
+                stroke={difficultyColors[diff]}
+                strokeWidth={1}
+                name={diff}
+              />
+            ))}
           </ScatterChart>
         </ResponsiveContainer>
-      </div>
-
-      {/* Case list */}
-      <div className="mt-3 space-y-1.5">
-        {patientCases.slice(0, 4).map((c) => (
-          <div key={c.caseName} className="flex items-center justify-between rounded-md px-2.5 py-1.5 hover:bg-muted/50 cursor-pointer transition-colors">
-            <span className="text-xs font-medium text-foreground">{c.caseName}</span>
-            <div className="flex items-center gap-3">
-              <span className={`text-[10px] font-semibold ${c.errorRate > 30 ? "text-destructive" : "text-warning"}`}>
-                {c.errorRate}% err
-              </span>
-              <span className="text-[10px] text-muted-foreground">{c.attempts} attempts</span>
-            </div>
-          </div>
-        ))}
       </div>
     </div>
   );
