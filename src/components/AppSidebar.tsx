@@ -1,9 +1,10 @@
 import {
   LayoutDashboard,
   Users,
-  UserCog,
   KeyRound,
   LogOut,
+  ClipboardList,
+  Building2,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -21,14 +22,14 @@ import {
 const navItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Students & Analytics", url: "/students", icon: Users },
-  { title: "Coordinators", url: "/coordinators", icon: UserCog },
-  { title: "Licenses", url: "/licenses", icon: KeyRound },
+  { title: "Case Review", url: "/cases", icon: ClipboardList },
+  { title: "Licenses & Access", url: "/licenses", icon: KeyRound },
 ];
 
 export function AppSidebar() {
   return (
     <Sidebar className="border-none">
-      <SidebarHeader className="p-5 pb-8">
+      <SidebarHeader className="p-5 pb-2">
         <div className="flex items-center gap-2.5">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-accent">
             <span className="text-sm font-bold text-sidebar-accent-foreground">S</span>
@@ -40,6 +41,13 @@ export function AppSidebar() {
             <p className="text-[9px] font-medium uppercase tracking-widest text-sidebar-foreground/50">
               CVC Training
             </p>
+          </div>
+        </div>
+        <div className="mt-4 flex items-center gap-2 rounded-lg bg-sidebar-accent/50 px-3 py-2">
+          <Building2 className="h-4 w-4 text-sidebar-foreground/60" />
+          <div>
+            <p className="text-[11px] font-semibold text-sidebar-foreground">Mercy General Hospital</p>
+            <p className="text-[9px] text-sidebar-foreground/50">Medical Education Dept.</p>
           </div>
         </div>
       </SidebarHeader>

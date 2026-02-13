@@ -20,10 +20,14 @@ export interface ErrorType {
 }
 
 export interface PatientCase {
+  id: number;
   caseName: string;
+  difficulty: "Easy" | "Moderate" | "Hard";
   errorRate: number;
   avgScore: number;
   attempts: number;
+  completions: number;
+  topErrors: string[];
 }
 
 export const students: Student[] = [
@@ -51,12 +55,23 @@ export const errorTypes: ErrorType[] = [
 ];
 
 export const patientCases: PatientCase[] = [
-  { caseName: "CVC IJV Emergent", errorRate: 42, avgScore: 58, attempts: 87 },
-  { caseName: "CVC Subclavian Elective", errorRate: 35, avgScore: 64, attempts: 62 },
-  { caseName: "CVC Femoral Critical", errorRate: 28, avgScore: 71, attempts: 94 },
-  { caseName: "PICC Line Insertion", errorRate: 18, avgScore: 78, attempts: 55 },
-  { caseName: "Arterial Line Radial", errorRate: 22, avgScore: 74, attempts: 73 },
-  { caseName: "Triple Lumen IJV", errorRate: 38, avgScore: 61, attempts: 48 },
+  { id: 1, caseName: "Patient 1: Robert Dawson", difficulty: "Easy", errorRate: 8, avgScore: 91, attempts: 142, completions: 131, topErrors: ["Guidewire Misplacement"] },
+  { id: 2, caseName: "Patient 2: Maria Santos", difficulty: "Easy", errorRate: 10, avgScore: 88, attempts: 138, completions: 124, topErrors: ["Excessive Cannulation Attempts"] },
+  { id: 3, caseName: "Patient 3: Helena Johnston", difficulty: "Moderate", errorRate: 22, avgScore: 74, attempts: 115, completions: 90, topErrors: ["Arterial Puncture", "Through-and-Through"] },
+  { id: 4, caseName: "Patient 4: James Liu", difficulty: "Easy", errorRate: 12, avgScore: 85, attempts: 130, completions: 114, topErrors: ["Guidewire Misplacement"] },
+  { id: 5, caseName: "Patient 5: Angela Freeman", difficulty: "Moderate", errorRate: 25, avgScore: 71, attempts: 108, completions: 81, topErrors: ["Arterial Puncture", "Prolonged Arrhythmia"] },
+  { id: 6, caseName: "Patient 6: William Torres", difficulty: "Hard", errorRate: 42, avgScore: 58, attempts: 87, completions: 50, topErrors: ["Arterial Puncture", "Through-and-Through", "Failed Cannulation Attempts"] },
+  { id: 7, caseName: "Patient 7: Diane Mitchell", difficulty: "Easy", errorRate: 9, avgScore: 90, attempts: 135, completions: 123, topErrors: ["Excessive Cannulation Attempts"] },
+  { id: 8, caseName: "Patient 8: Carlos Mendez", difficulty: "Moderate", errorRate: 28, avgScore: 69, attempts: 102, completions: 73, topErrors: ["Through-and-Through", "Guidewire Misplacement"] },
+  { id: 9, caseName: "Patient 9: Susan Park", difficulty: "Hard", errorRate: 38, avgScore: 61, attempts: 94, completions: 58, topErrors: ["Arterial Puncture", "Prolonged Arrhythmia", "Through-and-Through"] },
+  { id: 10, caseName: "Patient 10: Kevin O'Brien", difficulty: "Easy", errorRate: 11, avgScore: 87, attempts: 128, completions: 114, topErrors: ["Guidewire Misplacement"] },
+  { id: 11, caseName: "Patient 11: Priya Sharma", difficulty: "Moderate", errorRate: 20, avgScore: 76, attempts: 110, completions: 88, topErrors: ["Excessive Cannulation Attempts", "Arterial Puncture"] },
+  { id: 12, caseName: "Patient 12: Thomas Wright", difficulty: "Hard", errorRate: 35, avgScore: 64, attempts: 92, completions: 60, topErrors: ["Failed Cannulation Attempts", "Through-and-Through"] },
+  { id: 13, caseName: "Patient 13: Laura Chen", difficulty: "Easy", errorRate: 7, avgScore: 93, attempts: 145, completions: 135, topErrors: ["Guidewire Misplacement"] },
+  { id: 14, caseName: "Patient 14: Marcus Johnson", difficulty: "Moderate", errorRate: 24, avgScore: 72, attempts: 105, completions: 80, topErrors: ["Arterial Puncture", "Excessive Cannulation Attempts"] },
+  { id: 15, caseName: "Patient 15: Fatima Al-Rashid", difficulty: "Hard", errorRate: 40, avgScore: 59, attempts: 88, completions: 53, topErrors: ["Arterial Puncture", "Through-and-Through", "Prolonged Arrhythmia"] },
+  { id: 16, caseName: "Patient 16: Brian Cooper", difficulty: "Easy", errorRate: 13, avgScore: 84, attempts: 125, completions: 109, topErrors: ["Excessive Cannulation Attempts"] },
+  { id: 17, caseName: "Patient 17: Yuki Tanaka", difficulty: "Moderate", errorRate: 26, avgScore: 70, attempts: 100, completions: 74, topErrors: ["Through-and-Through", "Guidewire Misplacement"] },
 ];
 
 export const summaryStats = {

@@ -6,8 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import AppLayout from "./components/layout/AppLayout";
 import Dashboard from "./pages/Dashboard";
 import StudentsPage from "./pages/StudentsPage";
-import CoordinatorsPage from "./pages/CoordinatorsPage";
-import LicensesPage from "./pages/LicensesPage";
+import CaseReviewPage from "./pages/CaseReviewPage";
+import LicensesAccessPage from "./pages/LicensesAccessPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,9 +22,8 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/students" element={<StudentsPage />} />
-            <Route path="/training" element={<StudentsPage />} />
-            <Route path="/coordinators" element={<CoordinatorsPage />} />
-            <Route path="/licenses" element={<LicensesPage />} />
+            <Route path="/cases" element={<CaseReviewPage />} />
+            <Route path="/licenses" element={<LicensesAccessPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AppLayout>

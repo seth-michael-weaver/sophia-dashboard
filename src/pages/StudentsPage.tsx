@@ -5,8 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import StudentDetailModal from "@/components/dashboard/StudentDetailModal";
-import ErrorAnalytics from "@/components/dashboard/ErrorAnalytics";
-import CaseDifficulty from "@/components/dashboard/CaseDifficulty";
 
 const units = ["All", "Anesthesia", "Surgery", "Internal Medicine", "Advanced Practice Providers"];
 
@@ -43,7 +41,6 @@ const StudentsPage = () => {
   const [filterDeadline, setFilterDeadline] = useState("All");
   const [filterErrors, setFilterErrors] = useState("All");
   const [filterStatus, setFilterStatus] = useState("All");
-  const [activeError, setActiveError] = useState("");
 
   let filtered = students;
 
@@ -63,7 +60,6 @@ const StudentsPage = () => {
   else if (filterErrors === "No Errors") filtered = filtered.filter((s) => !studentErrors[s.id]?.length);
   if (filterStatus === "Needs Practice") filtered = filtered.filter((s) => s.needsPractice);
   else if (filterStatus === "On Track") filtered = filtered.filter((s) => !s.needsPractice);
-  if (activeError) filtered = filtered.filter((s) => studentErrors[s.id]?.includes(activeError));
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-5">
@@ -127,10 +123,7 @@ const StudentsPage = () => {
             </SelectContent>
           </Select>
         </div>
-        <p className="text-[11px] text-muted-foreground">
-          {filtered.length} students
-          {activeError && <span className="ml-1 text-destructive font-medium">· Error: {activeError} <button onClick={() => setActiveError("")} className="text-primary hover:underline ml-1">Clear</button></span>}
-        </p>
+        <p className="text-[11px] text-muted-foreground">{filtered.length} students</p>
       </div>
 
       {/* Table */}
@@ -240,12 +233,6 @@ const StudentsPage = () => {
             </div>
           ))}
         </div>
-      </div>
-
-      {/* Error Analytics & Case Difficulty */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <ErrorAnalytics activeError={activeError} onErrorChange={setActiveError} />
-        <CaseDifficulty />
       </div>
 
       <StudentDetailModal student={selectedStudent} open={!!selectedStudent} onClose={() => setSelectedStudent(null)} />
