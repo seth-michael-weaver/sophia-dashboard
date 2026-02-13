@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { Users, AlertTriangle, KeyRound } from "lucide-react";
-import { summaryStats, students } from "@/data/mockData";
+import { summaryStats, students, errorTypes } from "@/data/mockData";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface SummaryCardsProps {
   activeUnit: string;
@@ -17,37 +19,71 @@ const progressCategories = [
   { name: "Not Started", color: "hsl(214, 32%, 78%)" },
 ];
 
-const SummaryCards = ({ activeUnit, onUnitChange, activeStatus, onStatusChange }: SummaryCardsProps) => {
-  const { totalStudents, activeToday, completedPercent, licensesUsed, licensesTotal } = summaryStats;
+// Mock mapping of students to errors
+const studentErrors: Record<string, string[]> = {
+  "2": ["Arterial Puncture", "Through-and-Through", "Excessive Cannulation Attempts"],
+  "3": ["Guidewire Misplacement", "Prolonged Arrhythmia"],
+  "6": ["Arterial Puncture", "Failed Cannulation Attempts", "Through-and-Through"],
+  "8": ["Excessive Cannulation Attempts", "Guidewire Misplacement"],
+  "10": ["Arterial Puncture", "Prolonged Arrhythmia", "Failed Cannulation Attempts"],
+  "12": ["Through-and-Through", "Guidewire Misplacement"],
+};
 
-  const needsPracticeCount = students.filter((s) => s.needsPractice).length;
-  const overdueOrCloseCount = students.filter((s) => s.daysRemaining <= 3).length;
+const SummaryCards = ({ activeUnit, onUnitChange, activeStatus, onStatusChange }: SummaryCardsProps) => {
+  const { licensesUsed, licensesTotal } = summaryStats;
+
+  // Filter students by unit
+  const unitStudents = activeUnit === "All" ? students : students.filter((s) => s.unit === activeUnit);
+
+  const totalStudents = unitStudents.length;
+  const activeToday = unitStudents.filter((s) => s.lastActivity.includes("hr")).length;
+  const completedCount = unitStudents.filter((s) => s.walkthroughComplete === 100 && s.verificationStatus === "Verified").length;
+  const completedPercent = totalStudents > 0 ? Math.round((completedCount / totalStudents) * 100) : 0;
+
+  const needsPracticeCount = unitStudents.filter((s) => s.needsPractice).length;
+  const overdueOrCloseCount = unitStudents.filter((s) => s.daysRemaining <= 3).length;
   const needAttentionTotal = new Set([
-    ...students.filter((s) => s.needsPractice).map((s) => s.id),
-    ...students.filter((s) => s.daysRemaining <= 3).map((s) => s.id),
+    ...unitStudents.filter((s) => s.needsPractice).map((s) => s.id),
+    ...unitStudents.filter((s) => s.daysRemaining <= 3).map((s) => s.id),
   ]).size;
 
-  // Count overdue students per category
-  const getOverdueCount = (categoryName: string) => {
-    let categoryStudents = students;
-    if (categoryName === "Walkthrough Complete") {
-      categoryStudents = students.filter((s) => s.walkthroughComplete === 100);
-    } else if (categoryName === "Verification Done") {
-      categoryStudents = students.filter((s) => s.verificationStatus === "Verified");
-    } else if (categoryName === "In Progress") {
-      categoryStudents = students.filter((s) => s.verificationStatus === "In Progress" && s.walkthroughComplete < 100);
-    } else if (categoryName === "Not Started") {
-      categoryStudents = students.filter((s) => s.verificationStatus === "Not Started");
-    }
-    return categoryStudents.filter((s) => s.daysRemaining <= 3).length;
-  };
+  // Top 3 errors for unit
+  const unitErrorCounts: Record<string, number> = {};
+  unitStudents.forEach((s) => {
+    (studentErrors[s.id] || []).forEach((err) => {
+      unitErrorCounts[err] = (unitErrorCounts[err] || 0) + 1;
+    });
+  });
+  const topErrors = Object.entries(unitErrorCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3);
+
+  // Progress data based on filtered students
+  const walkthroughDone = unitStudents.filter((s) => s.walkthroughComplete === 100).length;
+  const verificationDone = unitStudents.filter((s) => s.verificationStatus === "Verified").length;
+  const inProgress = unitStudents.filter((s) => s.verificationStatus === "In Progress" && s.walkthroughComplete < 100).length;
+  const notStarted = unitStudents.filter((s) => s.verificationStatus === "Not Started").length;
 
   const progressData = [
-    { name: "Walkthrough Complete", value: 45 },
-    { name: "Verification Done", value: 18 },
-    { name: "In Progress", value: 25 },
-    { name: "Not Started", value: 12 },
+    { name: "Walkthrough Complete", value: totalStudents > 0 ? Math.round((walkthroughDone / totalStudents) * 100) : 0, count: walkthroughDone },
+    { name: "Verification Done", value: totalStudents > 0 ? Math.round((verificationDone / totalStudents) * 100) : 0, count: verificationDone },
+    { name: "In Progress", value: totalStudents > 0 ? Math.round((inProgress / totalStudents) * 100) : 0, count: inProgress },
+    { name: "Not Started", value: totalStudents > 0 ? Math.round((notStarted / totalStudents) * 100) : 0, count: notStarted },
   ];
+
+  const getOverdueStudents = (categoryName: string) => {
+    let categoryStudents = unitStudents;
+    if (categoryName === "Walkthrough Complete") {
+      categoryStudents = unitStudents.filter((s) => s.walkthroughComplete === 100);
+    } else if (categoryName === "Verification Done") {
+      categoryStudents = unitStudents.filter((s) => s.verificationStatus === "Verified");
+    } else if (categoryName === "In Progress") {
+      categoryStudents = unitStudents.filter((s) => s.verificationStatus === "In Progress" && s.walkthroughComplete < 100);
+    } else if (categoryName === "Not Started") {
+      categoryStudents = unitStudents.filter((s) => s.verificationStatus === "Not Started");
+    }
+    return categoryStudents.filter((s) => s.daysRemaining <= 3);
+  };
 
   const handleStatusClick = (name: string) => {
     if (onStatusChange) {
@@ -83,9 +119,9 @@ const SummaryCards = ({ activeUnit, onUnitChange, activeStatus, onStatusChange }
         ))}
       </div>
 
-      {/* Cards - 3 column layout with larger cards */}
+      {/* Cards - 3 column layout */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* Total Students Card */}
+        {/* Total Students Card + Top Errors */}
         <div className="rounded-xl bg-card p-5 shadow-card transition-shadow hover:shadow-card-hover animate-fade-in">
           <div className="flex items-center gap-3 mb-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-info/10 text-info">
@@ -103,16 +139,31 @@ const SummaryCards = ({ activeUnit, onUnitChange, activeStatus, onStatusChange }
             </div>
             <div className="flex justify-between text-xs">
               <span className="text-muted-foreground">Course completed</span>
-              <span className="font-semibold text-success">{completedPercent}% ({summaryStats.completedCourse})</span>
-            </div>
-            <div className="flex justify-between text-xs">
-              <span className="text-muted-foreground">Avg. score</span>
-              <span className="font-semibold text-foreground">74 <span className="text-success text-[10px]">↑ 3pts</span></span>
+              <span className="font-semibold text-success">{completedPercent}% ({completedCount})</span>
             </div>
           </div>
+          {/* Top Errors */}
+          {topErrors.length > 0 && (
+            <div className="mt-3 pt-3 border-t">
+              <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground mb-2">Top Errors</p>
+              <div className="space-y-1.5">
+                {topErrors.map(([name, count]) => {
+                  const errType = errorTypes.find((e) => e.name === name);
+                  return (
+                    <div key={name} className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground truncate mr-2">{name}</span>
+                      <span className={`font-semibold ${errType?.severity === "critical" ? "text-destructive" : "text-warning"}`}>
+                        {count}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Training Progress Card - replaces Course Completed */}
+        {/* Training Progress Card */}
         <div className="rounded-xl bg-card p-5 shadow-card transition-shadow hover:shadow-card-hover animate-fade-in">
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Training Progress</p>
@@ -125,7 +176,8 @@ const SummaryCards = ({ activeUnit, onUnitChange, activeStatus, onStatusChange }
           <div className="space-y-3">
             {progressData.map((item, idx) => {
               const cat = progressCategories[idx];
-              const overdueCount = getOverdueCount(item.name);
+              const overdueStudents = getOverdueStudents(item.name);
+              const overdueCount = overdueStudents.length;
               const isActive = activeStatus === item.name || activeStatus === `${item.name}:overdue`;
               const isDimmed = activeStatus && !isActive;
 
@@ -137,10 +189,9 @@ const SummaryCards = ({ activeUnit, onUnitChange, activeStatus, onStatusChange }
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-[11px] font-medium text-foreground">{item.name}</span>
-                    <span className="text-[11px] font-bold text-foreground">{item.value}%</span>
+                    <span className="text-[11px] font-bold text-foreground">{item.value}% ({item.count})</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    {/* Progress bar */}
                     <div className="relative h-3 flex-1 rounded-full bg-muted overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all duration-500"
@@ -155,19 +206,45 @@ const SummaryCards = ({ activeUnit, onUnitChange, activeStatus, onStatusChange }
                         }}
                       />
                     </div>
-                    {/* Overdue indicator */}
                     {overdueCount > 0 && (
-                      <button
-                        onClick={(e) => handleOverdueClick(e, item.name)}
-                        className={`flex items-center gap-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold transition-all ${
-                          activeStatus === `${item.name}:overdue`
-                            ? "bg-destructive text-white ring-2 ring-destructive/30"
-                            : "bg-destructive/10 text-destructive hover:bg-destructive/20"
-                        }`}
-                        title={`${overdueCount} overdue/close to deadline — click to filter`}
-                      >
-                        {overdueCount} ⚠
-                      </button>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button
+                            onClick={(e) => e.stopPropagation()}
+                            className={`flex items-center gap-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold transition-all ${
+                              activeStatus === `${item.name}:overdue`
+                                ? "bg-destructive text-white ring-2 ring-destructive/30"
+                                : "bg-destructive/10 text-destructive hover:bg-destructive/20"
+                            }`}
+                            title="Click for details"
+                          >
+                            {overdueCount} ⚠
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-64 p-3" side="right" align="start">
+                          <p className="text-xs font-semibold text-foreground mb-2">
+                            {overdueCount} overdue / close to deadline
+                          </p>
+                          <div className="space-y-1.5 mb-3">
+                            {overdueStudents.map((s) => (
+                              <div key={s.id} className="flex items-center justify-between text-xs">
+                                <span className="text-foreground">{s.name}</span>
+                                <span className={`font-semibold ${s.daysRemaining < 0 ? "text-destructive" : "text-warning"}`}>
+                                  {s.daysRemaining < 0 ? "Overdue" : `${s.daysRemaining}d left`}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              handleOverdueClick(e, item.name);
+                            }}
+                            className="text-[11px] font-medium text-primary hover:underline"
+                          >
+                            Filter table to these students →
+                          </button>
+                        </PopoverContent>
+                      </Popover>
                     )}
                   </div>
                 </div>

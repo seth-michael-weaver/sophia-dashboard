@@ -1,8 +1,6 @@
 import {
   LayoutDashboard,
   Users,
-  AlertTriangle,
-  Target,
   BarChart3,
   UserCog,
   KeyRound,
@@ -24,9 +22,7 @@ import {
 const navItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Students", url: "/students", icon: Users },
-  { title: "Common Errors", url: "/errors", icon: AlertTriangle },
-  { title: "Case Difficulty", url: "/cases", icon: Target },
-  { title: "Training Progress", url: "/training", icon: BarChart3 },
+  { title: "Training & Analytics", url: "/training", icon: BarChart3 },
   { title: "Coordinators", url: "/coordinators", icon: UserCog },
   { title: "Licenses", url: "/licenses", icon: KeyRound },
 ];
