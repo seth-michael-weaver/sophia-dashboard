@@ -14,7 +14,214 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      coordinators: {
+        Row: {
+          assigned_areas: string[]
+          created_at: string
+          email: string
+          id: string
+          name: string
+        }
+        Insert: {
+          assigned_areas?: string[]
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+        }
+        Update: {
+          assigned_areas?: string[]
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      departments: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      licenses: {
+        Row: {
+          created_at: string
+          expires_date: string
+          id: string
+          purchased_date: string
+          status: string
+          trainee_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          expires_date?: string
+          id?: string
+          purchased_date?: string
+          status?: string
+          trainee_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          expires_date?: string
+          id?: string
+          purchased_date?: string
+          status?: string
+          trainee_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "licenses_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: false
+            referencedRelation: "trainees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          is_read: boolean
+          recipient_ids: string[]
+          recipient_names: string[]
+          sender_name: string
+          sender_type: string
+          subject: string | null
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          recipient_ids?: string[]
+          recipient_names?: string[]
+          sender_name: string
+          sender_type?: string
+          subject?: string | null
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          recipient_ids?: string[]
+          recipient_names?: string[]
+          sender_name?: string
+          sender_type?: string
+          subject?: string | null
+        }
+        Relationships: []
+      }
+      trainee_errors: {
+        Row: {
+          case_id: number | null
+          created_at: string
+          error_type: string
+          id: string
+          trainee_id: string | null
+        }
+        Insert: {
+          case_id?: number | null
+          created_at?: string
+          error_type: string
+          id?: string
+          trainee_id?: string | null
+        }
+        Update: {
+          case_id?: number | null
+          created_at?: string
+          error_type?: string
+          id?: string
+          trainee_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trainee_errors_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: false
+            referencedRelation: "trainees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trainees: {
+        Row: {
+          assigned_modules: string[]
+          cases_completed: number
+          created_at: string
+          current_module: string | null
+          email: string
+          first_name: string
+          id: string
+          last_activity: string | null
+          last_name: string
+          latest_score: number
+          needs_practice: boolean
+          training_due_date: string
+          unit: string
+          updated_at: string
+          verification_attempts: number
+          verification_failures: number
+          verification_status: string
+          walkthrough_complete: number
+        }
+        Insert: {
+          assigned_modules?: string[]
+          cases_completed?: number
+          created_at?: string
+          current_module?: string | null
+          email: string
+          first_name: string
+          id?: string
+          last_activity?: string | null
+          last_name: string
+          latest_score?: number
+          needs_practice?: boolean
+          training_due_date: string
+          unit: string
+          updated_at?: string
+          verification_attempts?: number
+          verification_failures?: number
+          verification_status?: string
+          walkthrough_complete?: number
+        }
+        Update: {
+          assigned_modules?: string[]
+          cases_completed?: number
+          created_at?: string
+          current_module?: string | null
+          email?: string
+          first_name?: string
+          id?: string
+          last_activity?: string | null
+          last_name?: string
+          latest_score?: number
+          needs_practice?: boolean
+          training_due_date?: string
+          unit?: string
+          updated_at?: string
+          verification_attempts?: number
+          verification_failures?: number
+          verification_status?: string
+          walkthrough_complete?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

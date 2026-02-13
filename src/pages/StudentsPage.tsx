@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { students, type Student } from "@/data/mockData";
-import { MoreHorizontal, Flag, Search, Send, ArrowUpDown, Plus, Users, CheckCircle, AlertTriangle, BookOpen, Clock, TrendingUp } from "lucide-react";
+import { students, errorTypes, type Student } from "@/data/mockData";
+import { MoreHorizontal, Flag, Search, Send, ArrowUpDown, Plus, Users, CheckCircle, AlertTriangle, BookOpen, Clock, TrendingUp, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Progress } from "@/components/ui/progress";
 import StudentDetailModal from "@/components/dashboard/StudentDetailModal";
+import ErrorAnalytics from "@/components/dashboard/ErrorAnalytics";
 
 const units = ["All", "Anesthesia", "Surgery", "Internal Medicine", "Advanced Practice Providers"];
 
@@ -59,7 +60,15 @@ const StudentsPage = () => {
   const [messageSent, setMessageSent] = useState(false);
   const [addModuleStudent, setAddModuleStudent] = useState<Student | null>(null);
 
-  // Apply navigation state filters
+  // Bulk email
+  const [bulkEmailOpen, setBulkEmailOpen] = useState(false);
+  const [bulkEmailCategory, setBulkEmailCategory] = useState("");
+  const [bulkEmailText, setBulkEmailText] = useState("");
+  const [bulkEmailSent, setBulkEmailSent] = useState(false);
+
+  // Error filter for analytics
+  const [activeErrors, setActiveErrors] = useState<string[]>([]);
+
   useEffect(() => {
     if (navState?.statusFilter) {
       if (navState.statusFilter === "Overdue") setFilterDeadline("Overdue");
@@ -87,6 +96,7 @@ const StudentsPage = () => {
   else if (filterErrors === "No Errors") filtered = filtered.filter((s) => !studentErrors[s.id]?.length);
   if (filterStatus === "Needs Practice") filtered = filtered.filter((s) => s.needsPractice);
   else if (filterStatus === "On Track") filtered = filtered.filter((s) => !s.needsPractice);
+  if (activeErrors.length > 0) filtered = filtered.filter((s) => activeErrors.some((err) => studentErrors[s.id]?.includes(err)));
 
   filtered.sort((a, b) => {
     let cmp = 0;
@@ -102,7 +112,6 @@ const StudentsPage = () => {
     return sortDir === "asc" ? cmp : -cmp;
   });
 
-  // Summary stats
   const totalCount = students.length;
   const overdueCount = students.filter((s) => s.daysRemaining < 0).length;
   const dueSoonCount = students.filter((s) => s.daysRemaining >= 0 && s.daysRemaining <= 7).length;
@@ -120,27 +129,40 @@ const StudentsPage = () => {
   const handleAddModule = (_type: string) => { setAddModuleStudent(null); };
 
   const handleStatClick = (filter: string) => {
-    // Reset all filters first
-    setFilterDeadline("All");
-    setFilterWalkthrough("All");
-    setFilterStatus("All");
-    setFilterErrors("All");
-
+    setFilterDeadline("All"); setFilterWalkthrough("All"); setFilterStatus("All"); setFilterErrors("All");
     if (filter === "Overdue") setFilterDeadline("Overdue");
     else if (filter === "Due Soon") setFilterDeadline("Due Soon");
     else if (filter === "Not Started") setFilterWalkthrough("Not Started");
     else if (filter === "Needs Practice") setFilterStatus("Needs Practice");
-    else if (filter === "Completed") {
-      setFilterWalkthrough("Complete");
-      setFilterVerification("Verified");
-    }
+    else if (filter === "Completed") { setFilterWalkthrough("Complete"); setFilterVerification("Verified"); }
+  };
+
+  const handleBulkEmail = (category: string) => {
+    setBulkEmailCategory(category);
+    let count = 0;
+    if (category === "Overdue") count = overdueCount;
+    else if (category === "Due Soon") count = dueSoonCount;
+    else if (category === "Not Started") count = notStartedCount;
+    else if (category === "Needs Practice") count = needsPracticeCount;
+    setBulkEmailText(`This is a reminder regarding your CVC training. Please ensure you complete your required modules by the deadline.`);
+    setBulkEmailOpen(true);
+  };
+
+  const handleSendBulkEmail = () => {
+    setBulkEmailSent(true);
+    setTimeout(() => { setBulkEmailSent(false); setBulkEmailOpen(false); setBulkEmailText(""); }, 2000);
+  };
+
+  const getBulkCount = () => {
+    if (bulkEmailCategory === "Overdue") return overdueCount;
+    if (bulkEmailCategory === "Due Soon") return dueSoonCount;
+    if (bulkEmailCategory === "Not Started") return notStartedCount;
+    if (bulkEmailCategory === "Needs Practice") return needsPracticeCount;
+    return 0;
   };
 
   const SortHeader = ({ label, field }: { label: string; field: SortKey }) => (
-    <th
-      className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
-      onClick={() => handleSort(field)}
-    >
+    <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground cursor-pointer hover:text-foreground transition-colors" onClick={() => handleSort(field)}>
       <div className="flex items-center gap-1">
         {label}
         <ArrowUpDown className={`h-3 w-3 ${sortKey === field ? "text-primary" : "text-muted-foreground/40"}`} />
@@ -176,33 +198,31 @@ const StudentsPage = () => {
         </div>
       </div>
 
-      {/* Clickable Summary Stats */}
+      {/* Common Errors - filterable by specialty */}
+      <ErrorAnalytics activeErrors={activeErrors} onErrorToggle={(err) => setActiveErrors((prev) => prev.includes(err) ? prev.filter((e) => e !== err) : [...prev, err])} onClearErrors={() => setActiveErrors([])} />
+
+      {/* Clickable Summary Stats with email all button */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        <button onClick={() => handleStatClick("Overdue")} className={`rounded-xl bg-card p-3 shadow-card text-center transition-all hover:shadow-lg ${filterDeadline === "Overdue" ? "ring-2 ring-destructive" : ""}`}>
-          <AlertTriangle className="h-4 w-4 text-destructive mx-auto mb-1" />
-          <p className="text-xl font-bold text-destructive">{overdueCount}</p>
-          <p className="text-[10px] text-muted-foreground">Overdue</p>
-        </button>
-        <button onClick={() => handleStatClick("Due Soon")} className={`rounded-xl bg-card p-3 shadow-card text-center transition-all hover:shadow-lg ${filterDeadline === "Due Soon" ? "ring-2 ring-warning" : ""}`}>
-          <Clock className="h-4 w-4 text-warning mx-auto mb-1" />
-          <p className="text-xl font-bold text-warning">{dueSoonCount}</p>
-          <p className="text-[10px] text-muted-foreground">Due Soon</p>
-        </button>
-        <button onClick={() => handleStatClick("Not Started")} className={`rounded-xl bg-card p-3 shadow-card text-center transition-all hover:shadow-lg ${filterWalkthrough === "Not Started" ? "ring-2 ring-muted-foreground" : ""}`}>
-          <BookOpen className="h-4 w-4 text-muted-foreground mx-auto mb-1" />
-          <p className="text-xl font-bold text-foreground">{notStartedCount}</p>
-          <p className="text-[10px] text-muted-foreground">Not Started</p>
-        </button>
-        <button onClick={() => handleStatClick("Needs Practice")} className={`rounded-xl bg-card p-3 shadow-card text-center transition-all hover:shadow-lg ${filterStatus === "Needs Practice" ? "ring-2 ring-destructive" : ""}`}>
-          <Flag className="h-4 w-4 text-destructive mx-auto mb-1" />
-          <p className="text-xl font-bold text-destructive">{needsPracticeCount}</p>
-          <p className="text-[10px] text-muted-foreground">Need Practice</p>
-        </button>
-        <button onClick={() => handleStatClick("Completed")} className={`rounded-xl bg-card p-3 shadow-card text-center transition-all hover:shadow-lg ${filterWalkthrough === "Complete" && filterVerification === "Verified" ? "ring-2 ring-success" : ""}`}>
-          <CheckCircle className="h-4 w-4 text-success mx-auto mb-1" />
-          <p className="text-xl font-bold text-success">{completedCount}</p>
-          <p className="text-[10px] text-muted-foreground">Completed</p>
-        </button>
+        {[
+          { filter: "Overdue", icon: AlertTriangle, count: overdueCount, color: "text-destructive", ringColor: "ring-destructive", active: filterDeadline === "Overdue" },
+          { filter: "Due Soon", icon: Clock, count: dueSoonCount, color: "text-warning", ringColor: "ring-warning", active: filterDeadline === "Due Soon" },
+          { filter: "Not Started", icon: BookOpen, count: notStartedCount, color: "text-muted-foreground", ringColor: "ring-muted-foreground", active: filterWalkthrough === "Not Started" },
+          { filter: "Needs Practice", icon: Flag, count: needsPracticeCount, color: "text-destructive", ringColor: "ring-destructive", active: filterStatus === "Needs Practice" },
+          { filter: "Completed", icon: CheckCircle, count: completedCount, color: "text-success", ringColor: "ring-success", active: filterWalkthrough === "Complete" && filterVerification === "Verified" },
+        ].map((stat) => (
+          <div key={stat.filter} className={`rounded-xl bg-card p-3 shadow-card text-center transition-all hover:shadow-lg ${stat.active ? `ring-2 ${stat.ringColor}` : ""}`}>
+            <button onClick={() => handleStatClick(stat.filter)} className="w-full">
+              <stat.icon className={`h-4 w-4 ${stat.color} mx-auto mb-1`} />
+              <p className={`text-xl font-bold ${stat.color}`}>{stat.count}</p>
+              <p className="text-[10px] text-muted-foreground">{stat.filter}</p>
+            </button>
+            {stat.count > 0 && stat.filter !== "Completed" && (
+              <button onClick={() => handleBulkEmail(stat.filter)} className="mt-1.5 text-[9px] text-primary hover:underline flex items-center gap-0.5 mx-auto">
+                <Mail className="h-2.5 w-2.5" /> Email all
+              </button>
+            )}
+          </div>
+        ))}
         <div className="rounded-xl bg-card p-3 shadow-card text-center">
           <TrendingUp className="h-4 w-4 text-primary mx-auto mb-1" />
           <p className="text-xl font-bold text-primary">{avgProgress}%</p>
@@ -250,8 +270,8 @@ const StudentsPage = () => {
         </div>
         <div className="flex items-center justify-between">
           <p className="text-[11px] text-muted-foreground">{filtered.length} students</p>
-          {(filterDeadline !== "All" || filterWalkthrough !== "All" || filterStatus !== "All" || filterUnit !== "All") && (
-            <button onClick={() => { setFilterDeadline("All"); setFilterWalkthrough("All"); setFilterStatus("All"); setFilterUnit("All"); setFilterErrors("All"); setFilterVerification("All"); }} className="text-[10px] text-destructive hover:underline">
+          {(filterDeadline !== "All" || filterWalkthrough !== "All" || filterStatus !== "All" || filterUnit !== "All" || activeErrors.length > 0) && (
+            <button onClick={() => { setFilterDeadline("All"); setFilterWalkthrough("All"); setFilterStatus("All"); setFilterUnit("All"); setFilterErrors("All"); setFilterVerification("All"); setActiveErrors([]); }} className="text-[10px] text-destructive hover:underline">
               Clear all filters
             </button>
           )}
@@ -279,11 +299,7 @@ const StudentsPage = () => {
                 const deadline = getDeadlineBadge(student.daysRemaining);
                 const errors = studentErrors[student.id] || [];
                 return (
-                  <tr
-                    key={student.id}
-                    onClick={() => setSelectedStudent(student)}
-                    className={`border-b transition-colors hover:bg-muted/30 cursor-pointer ${student.needsPractice ? "bg-destructive/[0.02]" : ""}`}
-                  >
+                  <tr key={student.id} onClick={() => setSelectedStudent(student)} className={`border-b transition-colors hover:bg-muted/30 cursor-pointer ${student.needsPractice ? "bg-destructive/[0.02]" : ""}`}>
                     <td className="px-3 py-3">
                       <div className="flex items-center gap-3">
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">{student.avatar}</div>
@@ -294,9 +310,7 @@ const StudentsPage = () => {
                       </div>
                     </td>
                     <td className="px-3 py-3"><span className="text-xs text-muted-foreground">{student.unit}</span></td>
-                    <td className="px-3 py-3">
-                      <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${deadline.className}`}>{deadline.text}</span>
-                    </td>
+                    <td className="px-3 py-3"><span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${deadline.className}`}>{deadline.text}</span></td>
                     <td className="px-3 py-3">
                       <div className="flex items-center gap-2">
                         <div className="h-1.5 w-16 rounded-full bg-muted overflow-hidden">
@@ -305,22 +319,13 @@ const StudentsPage = () => {
                         <span className="text-xs font-medium text-foreground">{student.walkthroughComplete}%</span>
                       </div>
                     </td>
+                    <td className="px-3 py-3"><span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${getVerificationBadge(student.verificationStatus)}`}>{student.verificationStatus}</span></td>
                     <td className="px-3 py-3">
-                      <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${getVerificationBadge(student.verificationStatus)}`}>{student.verificationStatus}</span>
-                    </td>
-                    <td className="px-3 py-3">
-                      {errors.length > 0 ? (
-                        <span className="text-[10px] font-semibold text-destructive">{errors.length} errors</span>
-                      ) : (
-                        <span className="text-[10px] text-muted-foreground">None</span>
-                      )}
+                      {errors.length > 0 ? <span className="text-[10px] font-semibold text-destructive">{errors.length} errors</span> : <span className="text-[10px] text-muted-foreground">None</span>}
                     </td>
                     <td className="px-3 py-3">
                       {student.needsPractice ? (
-                        <div className="flex items-center gap-1 text-destructive">
-                          <Flag className="h-3 w-3 fill-current" />
-                          <span className="text-[10px] font-semibold">Needs Practice</span>
-                        </div>
+                        <div className="flex items-center gap-1 text-destructive"><Flag className="h-3 w-3 fill-current" /><span className="text-[10px] font-semibold">Needs Practice</span></div>
                       ) : (
                         <span className="text-[10px] text-success font-medium">On Track</span>
                       )}
@@ -332,17 +337,11 @@ const StudentsPage = () => {
                         </Button>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground"><MoreHorizontal className="h-4 w-4" /></Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => setAddModuleStudent(student)}>
-                              <Plus className="h-3.5 w-3.5 mr-2" /> Add Module
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setMessageStudent(student)}>
-                              <Send className="h-3.5 w-3.5 mr-2" /> Send Message
-                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setAddModuleStudent(student)}><Plus className="h-3.5 w-3.5 mr-2" /> Add Module</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setMessageStudent(student)}><Send className="h-3.5 w-3.5 mr-2" /> Send Message</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
@@ -358,39 +357,13 @@ const StudentsPage = () => {
         </div>
       </div>
 
-      {/* Recent Activity */}
-      <div className="rounded-xl bg-card p-5 shadow-card animate-fade-in">
-        <h3 className="text-sm font-semibold text-foreground mb-1">Recent Activity</h3>
-        <p className="text-xs text-muted-foreground mb-4">Latest training events</p>
-        <div className="space-y-3">
-          {[
-            { text: "James Rodriguez flagged: 3+ arterial puncture errors", time: "5 hrs ago", type: "error" },
-            { text: "Tom Bradley deadline overdue — Module 1 incomplete", time: "1 day ago", type: "error" },
-            { text: "Emily Thompson started Module 2: Ultrasound Guidance", time: "1 day ago", type: "info" },
-            { text: "Sarah Chen completed Verification of Proficiency", time: "2 hrs ago", type: "success" },
-            { text: "Aisha Patel scored 76 on Subclavian Access simulation", time: "12 hrs ago", type: "info" },
-            { text: "Batch upload: 12 new students added to Surgery", time: "2 days ago", type: "info" },
-          ].map((item, i) => (
-            <div key={i} className="flex items-start gap-3 group cursor-pointer">
-              <div className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${item.type === "success" ? "bg-success" : item.type === "error" ? "bg-destructive" : "bg-primary"}`} />
-              <div className="min-w-0">
-                <p className="text-xs text-foreground group-hover:text-primary transition-colors">{item.text}</p>
-                <p className="text-[10px] text-muted-foreground">{item.time}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
       <StudentDetailModal student={selectedStudent} open={!!selectedStudent} onClose={() => setSelectedStudent(null)} />
 
       {/* Send Message Modal */}
       <Dialog open={!!messageStudent} onOpenChange={() => setMessageStudent(null)}>
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Send className="h-4 w-4 text-primary" /> Send Reminder
-            </DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><Send className="h-4 w-4 text-primary" /> Send Reminder</DialogTitle>
             <DialogDescription>Send a message to {messageStudent?.name}</DialogDescription>
           </DialogHeader>
           {messageSent ? (
@@ -401,12 +374,33 @@ const StudentsPage = () => {
           ) : (
             <div className="space-y-3 mt-2">
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="text-[10px] flex-1" onClick={() => setMessageText("Please complete your training course before the deadline.")}>📋 Complete Course</Button>
+                <Button variant="outline" size="sm" className="text-[10px] flex-1" onClick={() => setMessageText(`Please complete your training course before ${messageStudent?.deadline}.`)}>📋 Complete Course</Button>
                 <Button variant="outline" size="sm" className="text-[10px] flex-1" onClick={() => setMessageText("You have been assigned additional practice. Please review.")}>🔄 Additional Practice</Button>
               </div>
               <Textarea placeholder="Custom message…" value={messageText} onChange={(e) => setMessageText(e.target.value)} className="text-xs min-h-[80px]" />
-              <Button className="w-full" size="sm" onClick={handleSendMessage} disabled={!messageText.trim()}>
-                <Send className="h-3.5 w-3.5 mr-1.5" /> Send Message
+              <Button className="w-full" size="sm" onClick={handleSendMessage} disabled={!messageText.trim()}><Send className="h-3.5 w-3.5 mr-1.5" /> Send Message</Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Email Modal */}
+      <Dialog open={bulkEmailOpen} onOpenChange={setBulkEmailOpen}>
+        <DialogContent className="sm:max-w-[440px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Mail className="h-4 w-4 text-primary" /> Email All {bulkEmailCategory} Students</DialogTitle>
+            <DialogDescription>Send a message to all {getBulkCount()} students who are {bulkEmailCategory.toLowerCase()}</DialogDescription>
+          </DialogHeader>
+          {bulkEmailSent ? (
+            <div className="flex flex-col items-center py-6 gap-2">
+              <CheckCircle className="h-10 w-10 text-success" />
+              <p className="text-sm font-semibold">Emails sent to {getBulkCount()} students!</p>
+            </div>
+          ) : (
+            <div className="space-y-3 mt-2">
+              <Textarea placeholder="Type your message…" value={bulkEmailText} onChange={(e) => setBulkEmailText(e.target.value)} className="text-sm min-h-[100px]" />
+              <Button className="w-full" onClick={handleSendBulkEmail} disabled={!bulkEmailText.trim()}>
+                <Send className="h-3.5 w-3.5 mr-1.5" /> Send to {getBulkCount()} Students
               </Button>
             </div>
           )}
@@ -417,9 +411,7 @@ const StudentsPage = () => {
       <Dialog open={!!addModuleStudent} onOpenChange={() => setAddModuleStudent(null)}>
         <DialogContent className="sm:max-w-[380px]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Plus className="h-4 w-4 text-primary" /> Add Module for {addModuleStudent?.name}
-            </DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><Plus className="h-4 w-4 text-primary" /> Add Module for {addModuleStudent?.name}</DialogTitle>
             <DialogDescription>Assign additional training if there was an error on upload.</DialogDescription>
           </DialogHeader>
           <div className="space-y-2 mt-2">
