@@ -46,16 +46,23 @@ const StudentTable = ({ activeUnit, activeStatus, activeError, dashboardMode }: 
     ? students
     : students.filter((s) => s.unit === activeUnit);
 
-  // Filter by progress chart status
+  // Filter by progress chart status (supports "Category:overdue" variant)
   if (activeStatus) {
-    if (activeStatus === "Walkthrough Complete") {
+    const isOverdueFilter = activeStatus.endsWith(":overdue");
+    const statusName = isOverdueFilter ? activeStatus.replace(":overdue", "") : activeStatus;
+
+    if (statusName === "Walkthrough Complete") {
       filtered = filtered.filter((s) => s.walkthroughComplete === 100);
-    } else if (activeStatus === "Verification Done") {
+    } else if (statusName === "Verification Done") {
       filtered = filtered.filter((s) => s.verificationStatus === "Verified");
-    } else if (activeStatus === "In Progress") {
+    } else if (statusName === "In Progress") {
       filtered = filtered.filter((s) => s.verificationStatus === "In Progress" && s.walkthroughComplete < 100);
-    } else if (activeStatus === "Not Started") {
+    } else if (statusName === "Not Started") {
       filtered = filtered.filter((s) => s.verificationStatus === "Not Started");
+    }
+
+    if (isOverdueFilter) {
+      filtered = filtered.filter((s) => s.daysRemaining <= 3);
     }
   }
 
