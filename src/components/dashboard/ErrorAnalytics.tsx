@@ -9,14 +9,15 @@ const severityColors: Record<string, string> = {
 };
 
 interface ErrorAnalyticsProps {
-  activeError?: string;
-  onErrorChange?: (error: string) => void;
+  activeErrors?: string[];
+  onErrorToggle?: (error: string) => void;
+  onClearErrors?: () => void;
 }
 
-const ErrorAnalytics = ({ activeError, onErrorChange }: ErrorAnalyticsProps) => {
+const ErrorAnalytics = ({ activeErrors = [], onErrorToggle, onClearErrors }: ErrorAnalyticsProps) => {
   const handleClick = (name: string) => {
-    if (onErrorChange) {
-      onErrorChange(activeError === name ? "" : name);
+    if (onErrorToggle) {
+      onErrorToggle(name);
     }
   };
 
@@ -26,7 +27,7 @@ const ErrorAnalytics = ({ activeError, onErrorChange }: ErrorAnalyticsProps) => 
         <AlertTriangle className="h-4 w-4 text-destructive" />
         <h3 className="text-sm font-semibold text-foreground">Common Errors</h3>
       </div>
-      <p className="mb-4 text-xs text-muted-foreground">Click a bar to filter students by error type</p>
+      <p className="mb-4 text-xs text-muted-foreground">Click bars to filter cases by error type (multi-select)</p>
 
       <div className="h-[260px]">
         <ResponsiveContainer width="100%" height="100%">
@@ -62,7 +63,7 @@ const ErrorAnalytics = ({ activeError, onErrorChange }: ErrorAnalyticsProps) => 
                 <Cell
                   key={`cell-${index}`}
                   fill={severityColors[entry.severity]}
-                  opacity={activeError && activeError !== entry.name ? 0.3 : 1}
+                  opacity={activeErrors.length > 0 && !activeErrors.includes(entry.name) ? 0.3 : 1}
                 />
               ))}
               <LabelList
@@ -75,11 +76,16 @@ const ErrorAnalytics = ({ activeError, onErrorChange }: ErrorAnalyticsProps) => 
         </ResponsiveContainer>
       </div>
 
-      {activeError && (
-        <div className="mt-3 flex items-center gap-2">
+      {activeErrors.length > 0 && (
+        <div className="mt-3 flex items-center gap-2 flex-wrap">
           <span className="text-xs text-muted-foreground">Filtered:</span>
-          <span className="text-xs font-semibold text-primary">{activeError}</span>
-          <button onClick={() => onErrorChange?.("")} className="text-[10px] text-destructive hover:underline ml-auto">Clear</button>
+          {activeErrors.map((err) => (
+            <span key={err} className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+              {err}
+              <button onClick={() => onErrorToggle?.(err)} className="ml-0.5 text-primary/60 hover:text-primary">×</button>
+            </span>
+          ))}
+          <button onClick={() => onClearErrors?.()} className="text-[10px] text-destructive hover:underline ml-auto">Clear all</button>
         </div>
       )}
     </div>

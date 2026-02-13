@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Upload, FileSpreadsheet, CheckCircle, Calendar } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -12,37 +11,34 @@ interface BatchUploadModalProps {
 }
 
 const patientCasesList = [
-  "Johnston, Helena (Thin, no peripheral access)",
-  "CVC IJV Emergent",
-  "CVC Subclavian Elective",
-  "CVC Femoral Critical",
-  "PICC Line Insertion",
-  "Arterial Line Radial",
-  "Triple Lumen IJV",
-  "Patient Case 7",
-  "Patient Case 8",
-  "Patient Case 9",
-  "Patient Case 10",
-  "Patient Case 11",
-  "Patient Case 12",
-  "Patient Case 13",
-  "Patient Case 14",
-  "Patient Case 15",
-  "Patient Case 16",
-  "Patient Case 17",
-  "Patient Case 18",
+  "Case 1: Doebuck, James",
+  "Case 2: Miller, Vincent",
+  "Case 3: Washington, Simone",
+  "Case 4: Gonzalez, Jessica",
+  "Case 5: Johnston, Helena",
+  "Case 6: Brown, Christina",
+  "Case 7: Stevenson, Kawhi",
+  "Case 8: Sparrow, Timmothy",
+  "Case 9: Castell, Heather",
+  "Case 10: Smith, Anna",
+  "Case 11: Jacobson, Devin",
+  "Case 12: Shoemaker, Ashley",
+  "Case 13: Steinlan, John",
+  "Case 14: Zhang, Colin",
+  "Case 15: Nash, Jeff",
+  "Case 16: Carr, John",
+  "Case 17: Wilson, Alan",
 ];
 
 const moduleOptions = [
   { id: "walkthrough", label: "Walkthrough Training" },
-  { id: "patient-cases", label: "Patient Cases (18)" },
+  { id: "patient-cases", label: "Patient Cases (17)" },
   { id: "verification", label: "Verification of Proficiency" },
 ];
 
 const BatchUploadModal = ({ open, onClose }: BatchUploadModalProps) => {
   const [file, setFile] = useState<File | null>(null);
   const [dueDate, setDueDate] = useState("");
-  const [unit, setUnit] = useState("");
   const [selectedModules, setSelectedModules] = useState<string[]>([]);
   const [selectedCases, setSelectedCases] = useState<string[]>([]);
   const [showCases, setShowCases] = useState(false);
@@ -75,7 +71,6 @@ const BatchUploadModal = ({ open, onClose }: BatchUploadModalProps) => {
       setUploaded(false);
       setFile(null);
       setDueDate("");
-      setUnit("");
       setSelectedModules([]);
       setSelectedCases([]);
       setShowCases(false);
@@ -92,7 +87,7 @@ const BatchUploadModal = ({ open, onClose }: BatchUploadModalProps) => {
             Batch Upload Students
           </DialogTitle>
           <DialogDescription>
-            Upload a CSV or Excel file with student data, then assign modules and due dates.
+            Upload a CSV or Excel file with student data, then assign modules and due dates. The file should include a "Unit" column to automatically assign students to their unit.
           </DialogDescription>
         </DialogHeader>
 
@@ -121,24 +116,8 @@ const BatchUploadModal = ({ open, onClose }: BatchUploadModalProps) => {
                 </p>
               )}
               <p className="text-[10px] text-muted-foreground mt-1">
-                Columns: Name, Email, Unit (optional). One student per row.
+                Required columns: <strong>Name, Email, Unit</strong>. One student per row. Unit will be auto-assigned from the file.
               </p>
-            </div>
-
-            {/* Unit assignment */}
-            <div>
-              <label className="text-xs font-semibold text-foreground mb-1.5 block">Assign Unit</label>
-              <Select value={unit} onValueChange={setUnit}>
-                <SelectTrigger className="text-xs">
-                  <SelectValue placeholder="Select unit..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Anesthesia" className="text-xs">Anesthesia</SelectItem>
-                  <SelectItem value="Surgery" className="text-xs">Surgery</SelectItem>
-                  <SelectItem value="Internal Medicine" className="text-xs">Internal Medicine</SelectItem>
-                  <SelectItem value="Advanced Practice Providers" className="text-xs">Advanced Practice Providers</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
 
             {/* Due date */}

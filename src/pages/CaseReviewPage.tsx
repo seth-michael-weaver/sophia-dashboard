@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { patientCases, errorTypes } from "@/data/mockData";
+import { patientCases, errorTypes, type PatientCase } from "@/data/mockData";
 import { ClipboardList, ArrowUpDown, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ErrorAnalytics from "@/components/dashboard/ErrorAnalytics";
 import CaseDifficulty from "@/components/dashboard/CaseDifficulty";
+import CaseDetailModal from "@/components/dashboard/CaseDetailModal";
 
 type SortKey = "caseName" | "difficulty" | "errorRate" | "avgScore" | "attempts" | "completions";
 type SortDir = "asc" | "desc";
@@ -17,22 +18,43 @@ const difficultyBadge = {
 };
 
 const CaseReviewPage = () => {
-  const [activeError, setActiveError] = useState("");
+  const [activeErrors, setActiveErrors] = useState<string[]>([]);
+  const [activeDifficulty, setActiveDifficulty] = useState("");
   const [searchCase, setSearchCase] = useState("");
   const [filterDifficulty, setFilterDifficulty] = useState("All");
   const [filterErrorType, setFilterErrorType] = useState("All");
-  const [sortKey, setSortKey] = useState<SortKey>("id" as any);
+  const [sortKey, setSortKey] = useState<SortKey>("caseName");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [selectedCase, setSelectedCase] = useState<PatientCase | null>(null);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(sortDir === "asc" ? "desc" : "asc");
     else { setSortKey(key); setSortDir("asc"); }
   };
 
+  const handleErrorToggle = (error: string) => {
+    setActiveErrors((prev) =>
+      prev.includes(error) ? prev.filter((e) => e !== error) : [...prev, error]
+    );
+  };
+
+  const handleDifficultyClick = (diff: string) => {
+    setActiveDifficulty((prev) => (prev === diff ? "" : diff));
+    if (diff && diff !== activeDifficulty) {
+      setFilterDifficulty(diff);
+    } else {
+      setFilterDifficulty("All");
+    }
+  };
+
   let cases = [...patientCases];
   if (searchCase) cases = cases.filter((c) => c.caseName.toLowerCase().includes(searchCase.toLowerCase()));
   if (filterDifficulty !== "All") cases = cases.filter((c) => c.difficulty === filterDifficulty);
   if (filterErrorType !== "All") cases = cases.filter((c) => c.topErrors.includes(filterErrorType));
+  // Multi-select error filter from chart
+  if (activeErrors.length > 0) {
+    cases = cases.filter((c) => activeErrors.some((err) => c.topErrors.includes(err)));
+  }
 
   cases.sort((a, b) => {
     let cmp = 0;
@@ -66,8 +88,8 @@ const CaseReviewPage = () => {
 
       {/* Error Analytics & Case Difficulty charts */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <ErrorAnalytics activeError={activeError} onErrorChange={setActiveError} />
-        <CaseDifficulty />
+        <ErrorAnalytics activeErrors={activeErrors} onErrorToggle={handleErrorToggle} onClearErrors={() => setActiveErrors([])} />
+        <CaseDifficulty onCaseClick={handleDifficultyClick} activeDifficulty={activeDifficulty} />
       </div>
 
       {/* Summary stats */}
@@ -96,7 +118,7 @@ const CaseReviewPage = () => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Search cases…" value={searchCase} onChange={(e) => setSearchCase(e.target.value)} className="pl-9 h-9 text-sm" />
         </div>
-        <Select value={filterDifficulty} onValueChange={setFilterDifficulty}>
+        <Select value={filterDifficulty} onValueChange={(v) => { setFilterDifficulty(v); setActiveDifficulty(v === "All" ? "" : v); }}>
           <SelectTrigger className="w-[130px] h-9 text-xs"><SelectValue placeholder="Difficulty" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="All">All Difficulty</SelectItem>
@@ -133,7 +155,7 @@ const CaseReviewPage = () => {
             </thead>
             <tbody>
               {cases.map((c) => (
-                <tr key={c.id} className="border-b transition-colors hover:bg-muted/30">
+                <tr key={c.id} className="border-b transition-colors hover:bg-muted/30 cursor-pointer" onClick={() => setSelectedCase(c)}>
                   <td className="px-3 py-3">
                     <div className="flex items-center gap-2">
                       <ClipboardList className="h-4 w-4 text-primary shrink-0" />
@@ -166,6 +188,8 @@ const CaseReviewPage = () => {
           </table>
         </div>
       </div>
+
+      <CaseDetailModal patientCase={selectedCase} open={!!selectedCase} onClose={() => setSelectedCase(null)} />
     </div>
   );
 };
