@@ -1,5 +1,5 @@
-import { Users, Activity, GraduationCap, KeyRound, TrendingUp } from "lucide-react";
-import { summaryStats } from "@/data/mockData";
+import { Users, AlertTriangle, GraduationCap, KeyRound } from "lucide-react";
+import { summaryStats, students } from "@/data/mockData";
 
 interface SummaryCardProps {
   icon: React.ReactNode;
@@ -39,6 +39,13 @@ const units = ["All", "Anesthesia", "Surgery", "Internal Medicine", "Advanced Pr
 const SummaryCards = ({ activeUnit, onUnitChange }: SummaryCardsProps) => {
   const { totalStudents, activeToday, completedPercent, licensesUsed, licensesTotal } = summaryStats;
 
+  const needsPracticeCount = students.filter((s) => s.needsPractice).length;
+  const overdueOrCloseCount = students.filter((s) => s.daysRemaining <= 3).length;
+  const needAttentionTotal = new Set([
+    ...students.filter((s) => s.needsPractice).map((s) => s.id),
+    ...students.filter((s) => s.daysRemaining <= 3).map((s) => s.id),
+  ]).size;
+
   return (
     <div className="space-y-4">
       {/* Unit filter */}
@@ -76,11 +83,11 @@ const SummaryCards = ({ activeUnit, onUnitChange }: SummaryCardsProps) => {
           accent="success"
         />
         <SummaryCard
-          icon={<TrendingUp className="h-5 w-5" />}
-          label="Avg. Score"
-          value="74"
-          subtitle="↑ 3pts this week"
-          accent="default"
+          icon={<AlertTriangle className="h-5 w-5" />}
+          label="Need Attention"
+          value={needAttentionTotal}
+          subtitle={`${needsPracticeCount} need practice · ${overdueOrCloseCount} overdue/close`}
+          accent="warning"
         />
         <SummaryCard
           icon={<KeyRound className="h-5 w-5" />}
