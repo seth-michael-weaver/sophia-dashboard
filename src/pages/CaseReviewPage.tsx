@@ -20,6 +20,7 @@ const difficultyBadge = {
 const CaseReviewPage = () => {
   const [activeErrors, setActiveErrors] = useState<string[]>([]);
   const [activeDifficulty, setActiveDifficulty] = useState("");
+  const [activeCaseId, setActiveCaseId] = useState<number | null>(null);
   const [searchCase, setSearchCase] = useState("");
   const [filterDifficulty, setFilterDifficulty] = useState("All");
   const [filterErrorType, setFilterErrorType] = useState("All");
@@ -39,6 +40,7 @@ const CaseReviewPage = () => {
   };
 
   const handleDifficultyClick = (diff: string) => {
+    setActiveCaseId(null);
     setActiveDifficulty((prev) => (prev === diff ? "" : diff));
     if (diff && diff !== activeDifficulty) {
       setFilterDifficulty(diff);
@@ -47,13 +49,26 @@ const CaseReviewPage = () => {
     }
   };
 
+  const handleSingleCaseClick = (caseId: number) => {
+    if (caseId === 0 || activeCaseId === caseId) {
+      setActiveCaseId(null);
+    } else {
+      setActiveCaseId(caseId);
+      setActiveDifficulty("");
+      setFilterDifficulty("All");
+    }
+  };
+
   let cases = [...patientCases];
   if (searchCase) cases = cases.filter((c) => c.caseName.toLowerCase().includes(searchCase.toLowerCase()));
-  if (filterDifficulty !== "All") cases = cases.filter((c) => c.difficulty === filterDifficulty);
-  if (filterErrorType !== "All") cases = cases.filter((c) => c.topErrors.includes(filterErrorType));
-  // Multi-select error filter from chart
-  if (activeErrors.length > 0) {
-    cases = cases.filter((c) => activeErrors.some((err) => c.topErrors.includes(err)));
+  if (activeCaseId) {
+    cases = cases.filter((c) => c.id === activeCaseId);
+  } else {
+    if (filterDifficulty !== "All") cases = cases.filter((c) => c.difficulty === filterDifficulty);
+    if (filterErrorType !== "All") cases = cases.filter((c) => c.topErrors.includes(filterErrorType));
+    if (activeErrors.length > 0) {
+      cases = cases.filter((c) => activeErrors.some((err) => c.topErrors.includes(err)));
+    }
   }
 
   cases.sort((a, b) => {
@@ -86,13 +101,16 @@ const CaseReviewPage = () => {
         <p className="text-sm text-muted-foreground">Common errors, case difficulty, and detailed patient case analysis</p>
       </div>
 
-      {/* Error Analytics & Case Difficulty charts */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <ErrorAnalytics activeErrors={activeErrors} onErrorToggle={handleErrorToggle} onClearErrors={() => setActiveErrors([])} />
-        <CaseDifficulty onCaseClick={handleDifficultyClick} activeDifficulty={activeDifficulty} />
+        <CaseDifficulty
+          onCaseClick={handleDifficultyClick}
+          activeDifficulty={activeDifficulty}
+          onSingleCaseClick={handleSingleCaseClick}
+          activeCaseId={activeCaseId}
+        />
       </div>
 
-      {/* Summary stats */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div className="rounded-xl bg-card p-4 shadow-card text-center">
           <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Total Cases</p>
@@ -112,13 +130,12 @@ const CaseReviewPage = () => {
         </div>
       </div>
 
-      {/* Filters */}
       <div className="flex items-center gap-2 flex-wrap">
         <div className="relative flex-1 min-w-[180px] max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Search cases…" value={searchCase} onChange={(e) => setSearchCase(e.target.value)} className="pl-9 h-9 text-sm" />
         </div>
-        <Select value={filterDifficulty} onValueChange={(v) => { setFilterDifficulty(v); setActiveDifficulty(v === "All" ? "" : v); }}>
+        <Select value={filterDifficulty} onValueChange={(v) => { setFilterDifficulty(v); setActiveDifficulty(v === "All" ? "" : v); setActiveCaseId(null); }}>
           <SelectTrigger className="w-[130px] h-9 text-xs"><SelectValue placeholder="Difficulty" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="All">All Difficulty</SelectItem>
@@ -134,10 +151,12 @@ const CaseReviewPage = () => {
             {errorTypes.map((e) => <SelectItem key={e.name} value={e.name}>{e.name}</SelectItem>)}
           </SelectContent>
         </Select>
+        {activeCaseId && (
+          <button onClick={() => setActiveCaseId(null)} className="text-xs text-destructive hover:underline">Clear case filter</button>
+        )}
         <p className="text-[11px] text-muted-foreground ml-auto">{cases.length} cases</p>
       </div>
 
-      {/* Case Table */}
       <div className="rounded-xl bg-card shadow-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">

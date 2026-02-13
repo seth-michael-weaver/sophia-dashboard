@@ -7,15 +7,14 @@ import StudentTable from "@/components/dashboard/StudentTable";
 
 const Dashboard = () => {
   const [activeUnit, setActiveUnit] = useState("All");
-  const [activeStatus, setActiveStatus] = useState("");
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
       <WelcomeBanner />
 
-      <SummaryCards activeUnit={activeUnit} onUnitChange={setActiveUnit} activeStatus={activeStatus} onStatusChange={setActiveStatus} />
+      <SummaryCards activeUnit={activeUnit} onUnitChange={setActiveUnit} />
 
-      <StudentTable activeUnit={activeUnit} activeStatus={activeStatus} dashboardMode />
+      <StudentTable activeUnit={activeUnit} dashboardMode />
 
       <div className="flex justify-end">
         <Link
