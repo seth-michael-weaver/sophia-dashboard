@@ -11,6 +11,7 @@ export interface Student {
   daysRemaining: number;
   needsPractice: boolean;
   currentModule: string;
+  cohort?: string;
 }
 
 export interface ErrorType {
@@ -37,18 +38,18 @@ export interface PatientCase {
 }
 
 export const students: Student[] = [
-  { id: "1", name: "Sarah Chen", avatar: "SC", unit: "Anesthesia", walkthroughComplete: 100, verificationStatus: "Verified", latestScore: 94, lastActivity: "2 hrs ago", deadline: "2026-02-20", daysRemaining: 9, needsPractice: false, currentModule: "Module 5: Advanced Lines" },
-  { id: "2", name: "James Rodriguez", avatar: "JR", unit: "Surgery", walkthroughComplete: 72, verificationStatus: "In Progress", latestScore: 68, lastActivity: "1 day ago", deadline: "2026-02-14", daysRemaining: 3, needsPractice: true, currentModule: "Module 3: Femoral Access" },
-  { id: "3", name: "Emily Thompson", avatar: "ET", unit: "Internal Medicine", walkthroughComplete: 45, verificationStatus: "Not Started", latestScore: 55, lastActivity: "3 days ago", deadline: "2026-02-12", daysRemaining: 1, needsPractice: true, currentModule: "Module 2: Ultrasound Guidance" },
-  { id: "4", name: "Michael Park", avatar: "MP", unit: "Anesthesia", walkthroughComplete: 100, verificationStatus: "In Progress", latestScore: 82, lastActivity: "5 hrs ago", deadline: "2026-02-25", daysRemaining: 14, needsPractice: false, currentModule: "Module 5: Advanced Lines" },
-  { id: "5", name: "Aisha Patel", avatar: "AP", unit: "Surgery", walkthroughComplete: 88, verificationStatus: "In Progress", latestScore: 76, lastActivity: "12 hrs ago", deadline: "2026-02-18", daysRemaining: 7, needsPractice: false, currentModule: "Module 4: Subclavian Access" },
-  { id: "6", name: "David Kim", avatar: "DK", unit: "Internal Medicine", walkthroughComplete: 0, verificationStatus: "Not Started", latestScore: 42, lastActivity: "5 days ago", deadline: "2026-02-11", daysRemaining: 0, needsPractice: true, currentModule: "Module 1: Anatomy Review" },
-  { id: "7", name: "Lisa Wang", avatar: "LW", unit: "Anesthesia", walkthroughComplete: 100, verificationStatus: "Verified", latestScore: 97, lastActivity: "1 hr ago", deadline: "2026-02-28", daysRemaining: 17, needsPractice: false, currentModule: "Module 5: Advanced Lines" },
-  { id: "8", name: "Ryan Foster", avatar: "RF", unit: "Surgery", walkthroughComplete: 60, verificationStatus: "Not Started", latestScore: 61, lastActivity: "2 days ago", deadline: "2026-02-13", daysRemaining: 2, needsPractice: true, currentModule: "Module 3: Femoral Access" },
-  { id: "9", name: "Maria Gonzalez", avatar: "MG", unit: "Internal Medicine", walkthroughComplete: 95, verificationStatus: "In Progress", latestScore: 88, lastActivity: "4 hrs ago", deadline: "2026-02-22", daysRemaining: 11, needsPractice: false, currentModule: "Module 5: Advanced Lines" },
-  { id: "10", name: "Tom Bradley", avatar: "TB", unit: "Anesthesia", walkthroughComplete: 0, verificationStatus: "Not Started", latestScore: 38, lastActivity: "1 week ago", deadline: "2026-02-10", daysRemaining: -1, needsPractice: true, currentModule: "Module 1: Anatomy Review" },
-  { id: "11", name: "Rachel Nguyen", avatar: "RN", unit: "Advanced Practice Providers", walkthroughComplete: 80, verificationStatus: "In Progress", latestScore: 79, lastActivity: "6 hrs ago", deadline: "2026-02-19", daysRemaining: 8, needsPractice: false, currentModule: "Module 4: Subclavian Access" },
-  { id: "12", name: "Chris Howard", avatar: "CH", unit: "Advanced Practice Providers", walkthroughComplete: 55, verificationStatus: "Not Started", latestScore: 52, lastActivity: "2 days ago", deadline: "2026-02-15", daysRemaining: 4, needsPractice: true, currentModule: "Module 2: Ultrasound Guidance" },
+  { id: "1", name: "Sarah Chen", avatar: "SC", unit: "Anesthesia", walkthroughComplete: 100, verificationStatus: "Verified", latestScore: 94, lastActivity: "2 hrs ago", deadline: "2026-02-20", daysRemaining: 9, needsPractice: false, currentModule: "Module 5: Advanced Lines", cohort: "Spring 2026 Anesthesia" },
+  { id: "2", name: "James Rodriguez", avatar: "JR", unit: "Surgery", walkthroughComplete: 72, verificationStatus: "In Progress", latestScore: 68, lastActivity: "1 day ago", deadline: "2026-02-14", daysRemaining: 3, needsPractice: true, currentModule: "Module 3: Femoral Access", cohort: "Spring 2026 Surgery" },
+  { id: "3", name: "Emily Thompson", avatar: "ET", unit: "Internal Medicine", walkthroughComplete: 45, verificationStatus: "Not Started", latestScore: 55, lastActivity: "3 days ago", deadline: "2026-02-12", daysRemaining: 1, needsPractice: true, currentModule: "Module 2: Ultrasound Guidance", cohort: "Spring 2026 IM" },
+  { id: "4", name: "Michael Park", avatar: "MP", unit: "Anesthesia", walkthroughComplete: 100, verificationStatus: "In Progress", latestScore: 82, lastActivity: "5 hrs ago", deadline: "2026-02-25", daysRemaining: 14, needsPractice: false, currentModule: "Module 5: Advanced Lines", cohort: "Spring 2026 Anesthesia" },
+  { id: "5", name: "Aisha Patel", avatar: "AP", unit: "Surgery", walkthroughComplete: 88, verificationStatus: "In Progress", latestScore: 76, lastActivity: "12 hrs ago", deadline: "2026-02-18", daysRemaining: 7, needsPractice: false, currentModule: "Module 4: Subclavian Access", cohort: "Spring 2026 Surgery" },
+  { id: "6", name: "David Kim", avatar: "DK", unit: "Internal Medicine", walkthroughComplete: 0, verificationStatus: "Not Started", latestScore: 42, lastActivity: "5 days ago", deadline: "2026-02-11", daysRemaining: 0, needsPractice: true, currentModule: "Module 1: Anatomy Review", cohort: "Spring 2026 IM" },
+  { id: "7", name: "Lisa Wang", avatar: "LW", unit: "Anesthesia", walkthroughComplete: 100, verificationStatus: "Verified", latestScore: 97, lastActivity: "1 hr ago", deadline: "2026-02-28", daysRemaining: 17, needsPractice: false, currentModule: "Module 5: Advanced Lines", cohort: "Spring 2026 Anesthesia" },
+  { id: "8", name: "Ryan Foster", avatar: "RF", unit: "Surgery", walkthroughComplete: 60, verificationStatus: "Not Started", latestScore: 61, lastActivity: "2 days ago", deadline: "2026-02-13", daysRemaining: 2, needsPractice: true, currentModule: "Module 3: Femoral Access", cohort: "Spring 2026 Surgery" },
+  { id: "9", name: "Maria Gonzalez", avatar: "MG", unit: "Internal Medicine", walkthroughComplete: 95, verificationStatus: "In Progress", latestScore: 88, lastActivity: "4 hrs ago", deadline: "2026-02-22", daysRemaining: 11, needsPractice: false, currentModule: "Module 5: Advanced Lines", cohort: "Spring 2026 IM" },
+  { id: "10", name: "Tom Bradley", avatar: "TB", unit: "Anesthesia", walkthroughComplete: 0, verificationStatus: "Not Started", latestScore: 38, lastActivity: "1 week ago", deadline: "2026-02-10", daysRemaining: -1, needsPractice: true, currentModule: "Module 1: Anatomy Review", cohort: "Spring 2026 Anesthesia" },
+  { id: "11", name: "Rachel Nguyen", avatar: "RN", unit: "Advanced Practice Providers", walkthroughComplete: 80, verificationStatus: "In Progress", latestScore: 79, lastActivity: "6 hrs ago", deadline: "2026-02-19", daysRemaining: 8, needsPractice: false, currentModule: "Module 4: Subclavian Access", cohort: "Spring 2026 APP" },
+  { id: "12", name: "Chris Howard", avatar: "CH", unit: "Advanced Practice Providers", walkthroughComplete: 55, verificationStatus: "Not Started", latestScore: 52, lastActivity: "2 days ago", deadline: "2026-02-15", daysRemaining: 4, needsPractice: true, currentModule: "Module 2: Ultrasound Guidance", cohort: "Spring 2026 APP" },
 ];
 
 export const errorTypes: ErrorType[] = [
@@ -81,10 +82,10 @@ export const patientCases: PatientCase[] = [
 ];
 
 export const summaryStats = {
-  totalStudents: 148,
-  activeToday: 34,
-  completedCourse: 67,
-  completedPercent: 45,
-  licensesUsed: 142,
+  totalStudents: students.length,
+  activeToday: students.filter((s) => s.lastActivity.includes("hr")).length,
+  completedCourse: students.filter((s) => s.walkthroughComplete === 100 && s.verificationStatus === "Verified").length,
+  completedPercent: Math.round((students.filter((s) => s.walkthroughComplete === 100 && s.verificationStatus === "Verified").length / students.length) * 100),
+  licensesUsed: 12,
   licensesTotal: 200,
 };

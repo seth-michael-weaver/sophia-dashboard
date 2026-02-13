@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { type Student } from "@/data/mockData";
-import { Flag, Mail, Send, Clock, BookOpen, AlertTriangle, CheckCircle, ClipboardList, Edit2, Save, X } from "lucide-react";
+import { Flag, Mail, Send, Clock, BookOpen, AlertTriangle, CheckCircle, ClipboardList, Edit2, Save, X, Calendar } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -19,15 +19,12 @@ const units = ["Anesthesia", "Surgery", "Internal Medicine", "Advanced Practice 
 
 // Walkthrough is sequential: can't move on until previous is done
 const getWalkthroughModules = (overallProgress: number) => {
-  // Sequential: Procedural Preparation → Needle Insertion → Catheter Placement
-  // Sub-modules within Needle Insertion are also sequential
   const procPrep = Math.min(100, Math.round(overallProgress * 3));
   const procPrepDone = procPrep >= 100;
 
   const needleOverall = procPrepDone ? Math.min(100, Math.round((overallProgress - 33) * 1.5)) : 0;
   const needleDone = needleOverall >= 100;
 
-  // Sequential sub-modules for needle insertion
   const needleSubProgress = Math.max(0, needleOverall);
   const vesselId = Math.min(100, Math.round(needleSubProgress * 5));
   const needleAsp = vesselId >= 100 ? Math.min(100, Math.round((needleSubProgress - 20) * 6.25)) : 0;
@@ -109,6 +106,8 @@ const StudentDetailModal = ({ student, open, onClose }: StudentDetailModalProps)
   const [showReminder, setShowReminder] = useState(false);
   const [reminderSent, setReminderSent] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [editFirstName, setEditFirstName] = useState("");
+  const [editLastName, setEditLastName] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [editDueDate, setEditDueDate] = useState("");
   const [editUnit, setEditUnit] = useState("");
@@ -121,7 +120,13 @@ const StudentDetailModal = ({ student, open, onClose }: StudentDetailModalProps)
   const completedCases = casesCompleted[student.id] || 0;
   const errors = studentErrors[student.id] || [];
 
+  const nameParts = student.name.split(" ");
+  const firstName = nameParts[0] || "";
+  const lastName = nameParts.slice(1).join(" ") || "";
+
   const startEdit = () => {
+    setEditFirstName(firstName);
+    setEditLastName(lastName);
     setEditEmail(`${student.name.toLowerCase().replace(" ", ".")}@mercygeneral.edu`);
     setEditDueDate(student.deadline);
     setEditUnit(student.unit);
@@ -165,6 +170,7 @@ const StudentDetailModal = ({ student, open, onClose }: StudentDetailModalProps)
             <div className="flex-1">
               <DialogTitle className="text-lg">{student.name}</DialogTitle>
               <p className="text-xs text-muted-foreground">{student.unit} · {student.currentModule}</p>
+              {student.cohort && <p className="text-[10px] text-primary font-medium">{student.cohort}</p>}
             </div>
             <div className="flex items-center gap-1.5">
               {student.needsPractice && (
@@ -186,6 +192,16 @@ const StudentDetailModal = ({ student, open, onClose }: StudentDetailModalProps)
             <div className="flex items-center justify-between">
               <p className="text-xs font-semibold text-foreground">Edit Student Details</p>
               <button onClick={() => setEditing(false)}><X className="h-4 w-4 text-muted-foreground" /></button>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] font-semibold text-foreground mb-0.5 block">First Name</label>
+                <Input value={editFirstName} onChange={(e) => setEditFirstName(e.target.value)} className="text-xs h-8" />
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold text-foreground mb-0.5 block">Last Name</label>
+                <Input value={editLastName} onChange={(e) => setEditLastName(e.target.value)} className="text-xs h-8" />
+              </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
@@ -225,8 +241,15 @@ const StudentDetailModal = ({ student, open, onClose }: StudentDetailModalProps)
             <p className="text-[10px] text-muted-foreground font-medium">Latest Score</p>
           </div>
           <div className="rounded-lg bg-muted/50 p-3 text-center">
-            <p className={`text-2xl font-bold ${student.daysRemaining < 0 ? "text-destructive" : student.daysRemaining <= 3 ? "text-warning" : "text-success"}`}>{student.daysRemaining < 0 ? "Overdue" : `${student.daysRemaining}d`}</p>
-            <p className="text-[10px] text-muted-foreground font-medium">Deadline</p>
+            <div className="flex items-center justify-center gap-1 mb-0.5">
+              <Calendar className="h-3 w-3 text-muted-foreground" />
+              <p className={`text-sm font-bold ${student.daysRemaining < 0 ? "text-destructive" : student.daysRemaining <= 3 ? "text-warning" : "text-success"}`}>
+                {new Date(student.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+              </p>
+            </div>
+            <p className={`text-[10px] font-medium ${student.daysRemaining < 0 ? "text-destructive" : student.daysRemaining <= 3 ? "text-warning" : "text-muted-foreground"}`}>
+              {student.daysRemaining < 0 ? "Overdue" : `${student.daysRemaining}d remaining`}
+            </p>
           </div>
         </div>
 

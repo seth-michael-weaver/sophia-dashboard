@@ -138,6 +138,7 @@ const StudentTable = ({ activeUnit, activeStatus, activeError, dashboardMode }: 
               <tr className="border-t border-b bg-muted/50">
                 <SortHeader label="Student" field="name" />
                 <SortHeader label="Unit" field="unit" />
+                <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Cohort</th>
                 <SortHeader label="Deadline" field="deadline" />
                 <SortHeader label="Walkthrough" field="walkthrough" />
                 <SortHeader label="Verification" field="verification" />
@@ -173,9 +174,15 @@ const StudentTable = ({ activeUnit, activeStatus, activeError, dashboardMode }: 
                       <span className="text-xs text-muted-foreground">{student.unit}</span>
                     </td>
                     <td className="px-3 py-3">
-                      <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${deadline.className}`}>
-                        {deadline.text}
-                      </span>
+                      <span className="text-[10px] text-primary font-medium">{student.cohort || "—"}</span>
+                    </td>
+                    <td className="px-3 py-3">
+                      <div>
+                        <span className="text-xs text-foreground">{new Date(student.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                        <span className={`ml-1.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${deadline.className}`}>
+                          {deadline.text}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-3 py-3">
                       <div className="flex items-center gap-2">
@@ -220,7 +227,7 @@ const StudentTable = ({ activeUnit, activeStatus, activeError, dashboardMode }: 
               })}
               {sorted.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-5 py-8 text-center text-sm text-muted-foreground">
+                  <td colSpan={9} className="px-5 py-8 text-center text-sm text-muted-foreground">
                     No students match the current filters.
                   </td>
                 </tr>

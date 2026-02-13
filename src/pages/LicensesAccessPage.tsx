@@ -46,6 +46,13 @@ const initialCoordinators: Coordinator[] = [
   { id: "3", name: "Nancy Drew, RN", email: "n.drew@mercygeneral.edu", assignedAreas: ["Internal Medicine", "Critical Care"] },
 ];
 
+// Coordinator edit state type
+interface CoordEditState {
+  id: string;
+  name: string;
+  email: string;
+}
+
 type LicenseSortKey = "name" | "unit" | "purchased" | "expires" | "timeLeft" | "email" | "dueDate";
 type SortDir = "asc" | "desc";
 
@@ -79,11 +86,17 @@ const LicensesAccessPage = () => {
 
   // Student edit modal
   const [editStudent, setEditStudent] = useState<typeof students[0] | null>(null);
+  const [editFirstName, setEditFirstName] = useState("");
+  const [editLastName, setEditLastName] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [editUnit, setEditUnit] = useState("");
   const [editDueDate, setEditDueDate] = useState("");
   const [editModules, setEditModules] = useState<string[]>(["walkthrough", "patient-cases", "verification"]);
   const [editSaved, setEditSaved] = useState(false);
+
+  // Coordinator edit modal
+  const [editCoord, setEditCoord] = useState<CoordEditState | null>(null);
+  const [editCoordSaved, setEditCoordSaved] = useState(false);
 
   // Bulk actions
   const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set());
@@ -135,11 +148,26 @@ const LicensesAccessPage = () => {
   };
 
   const openStudentEdit = (student: typeof students[0]) => {
+    const nameParts = student.name.split(" ");
     setEditStudent(student);
+    setEditFirstName(nameParts[0] || "");
+    setEditLastName(nameParts.slice(1).join(" ") || "");
     setEditEmail(`${student.name.toLowerCase().replace(" ", ".")}@mercygeneral.edu`);
     setEditUnit(student.unit);
     setEditDueDate(student.deadline);
     setEditModules(["walkthrough", "patient-cases", "verification"]);
+  };
+
+  const openCoordEdit = (coord: Coordinator) => {
+    setEditCoord({ id: coord.id, name: coord.name, email: coord.email });
+  };
+
+  const handleSaveCoordEdit = () => {
+    if (editCoord) {
+      setCoordinators((prev) => prev.map((c) => c.id === editCoord.id ? { ...c, name: editCoord.name, email: editCoord.email } : c));
+      setEditCoordSaved(true);
+      setTimeout(() => { setEditCoordSaved(false); setEditCoord(null); }, 1500);
+    }
   };
 
   const handleSaveStudentEdit = () => {
@@ -208,8 +236,8 @@ const LicensesAccessPage = () => {
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-foreground">Licenses & Access</h2>
-        <p className="text-sm text-muted-foreground">Manage licenses, training cohorts, coordinators, and departments</p>
+        <h2 className="text-xl font-bold text-foreground">Trainees & Assignments</h2>
+        <p className="text-sm text-muted-foreground">Manage training cohorts, student assignments, coordinators, and departments</p>
       </div>
 
       {/* License overview + actions */}
@@ -386,20 +414,20 @@ const LicensesAccessPage = () => {
                 </thead>
                 <tbody>
                   {coordinators.map((coord) => (
-                    <tr key={coord.id} className="border-b transition-colors hover:bg-muted/30">
+                    <tr key={coord.id} className="border-b transition-colors hover:bg-muted/30 cursor-pointer" onClick={() => openCoordEdit(coord)}>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary"><Shield className="h-4 w-4" /></div>
-                          <span className="font-medium text-foreground text-[13px]">{coord.name}</span>
+                          <span className="font-medium text-foreground text-[13px] hover:text-primary transition-colors">{coord.name}</span>
                         </div>
                       </td>
                       <td className="px-3 py-3 text-muted-foreground text-xs">{coord.email}</td>
                       {departments.map((dept) => (
-                        <td key={dept} className="px-2 py-3 text-center">
+                        <td key={dept} className="px-2 py-3 text-center" onClick={(e) => e.stopPropagation()}>
                           <Checkbox checked={coord.assignedAreas.includes(dept)} onCheckedChange={() => toggleCoordArea(coord.id, dept)} className="h-4 w-4" />
                         </td>
                       ))}
-                      <td className="px-3 py-3 text-right">
+                      <td className="px-3 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                         <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setCoordinators((prev) => prev.filter((c) => c.id !== coord.id))}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -418,12 +446,22 @@ const LicensesAccessPage = () => {
         <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><Edit2 className="h-5 w-5 text-primary" /> Edit Student: {editStudent?.name}</DialogTitle>
-            <DialogDescription>Update email, due date, unit assignment, and modules.</DialogDescription>
+            <DialogDescription>Update name, email, due date, unit assignment, and modules.</DialogDescription>
           </DialogHeader>
           {editSaved ? (
             <div className="flex flex-col items-center py-6 gap-2"><CheckCircle className="h-10 w-10 text-success" /><p className="text-sm font-semibold">Changes saved!</p></div>
           ) : (
             <div className="space-y-4 mt-2">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-foreground mb-1 block">First Name</label>
+                  <Input value={editFirstName} onChange={(e) => setEditFirstName(e.target.value)} className="text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-foreground mb-1 block">Last Name</label>
+                  <Input value={editLastName} onChange={(e) => setEditLastName(e.target.value)} className="text-sm" />
+                </div>
+              </div>
               <div>
                 <label className="text-xs font-semibold text-foreground mb-1 block">Email</label>
                 <Input type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} className="text-sm" />
@@ -568,6 +606,31 @@ const LicensesAccessPage = () => {
             </div>
             <Button className="w-full" onClick={handleAddIndividualStudent} disabled={!indFirstName || !indLastName || !indEmail || !indUnit}><Plus className="h-4 w-4 mr-1" /> Add Student</Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Coordinator Edit Modal */}
+      <Dialog open={!!editCoord} onOpenChange={() => setEditCoord(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Edit2 className="h-5 w-5 text-primary" /> Edit Coordinator</DialogTitle>
+            <DialogDescription>Update coordinator name and email address.</DialogDescription>
+          </DialogHeader>
+          {editCoordSaved ? (
+            <div className="flex flex-col items-center py-6 gap-2"><CheckCircle className="h-10 w-10 text-success" /><p className="text-sm font-semibold">Changes saved!</p></div>
+          ) : (
+            <div className="space-y-4 mt-2">
+              <div>
+                <label className="text-xs font-semibold text-foreground mb-1 block">Name</label>
+                <Input value={editCoord?.name || ""} onChange={(e) => setEditCoord((prev) => prev ? { ...prev, name: e.target.value } : null)} className="text-sm" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-foreground mb-1 block">Email</label>
+                <Input type="email" value={editCoord?.email || ""} onChange={(e) => setEditCoord((prev) => prev ? { ...prev, email: e.target.value } : null)} className="text-sm" />
+              </div>
+              <Button className="w-full" onClick={handleSaveCoordEdit}><Save className="h-4 w-4 mr-1" /> Save Changes</Button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
