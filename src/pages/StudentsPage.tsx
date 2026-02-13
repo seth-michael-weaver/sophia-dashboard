@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { students, type Student } from "@/data/mockData";
-import { MoreHorizontal, Flag, Search } from "lucide-react";
+import { MoreHorizontal, Flag, Search, Send, ArrowUpDown, Plus, Users, CheckCircle, AlertTriangle, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import StudentDetailModal from "@/components/dashboard/StudentDetailModal";
 
 const units = ["All", "Anesthesia", "Surgery", "Internal Medicine", "Advanced Practice Providers"];
@@ -16,6 +19,9 @@ const studentErrors: Record<string, string[]> = {
   "10": ["Arterial Puncture", "Prolonged Arrhythmia", "Failed Cannulation Attempts"],
   "12": ["Through-and-Through", "Guidewire Misplacement"],
 };
+
+type SortKey = "name" | "unit" | "deadline" | "walkthrough" | "verification" | "errors" | "status";
+type SortDir = "asc" | "desc";
 
 const getDeadlineBadge = (days: number) => {
   if (days < 0) return { text: "Overdue", className: "bg-destructive/10 text-destructive" };
@@ -41,8 +47,19 @@ const StudentsPage = () => {
   const [filterDeadline, setFilterDeadline] = useState("All");
   const [filterErrors, setFilterErrors] = useState("All");
   const [filterStatus, setFilterStatus] = useState("All");
+  const [sortKey, setSortKey] = useState<SortKey>("name");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [messageStudent, setMessageStudent] = useState<Student | null>(null);
+  const [messageText, setMessageText] = useState("");
+  const [messageSent, setMessageSent] = useState(false);
+  const [addModuleStudent, setAddModuleStudent] = useState<Student | null>(null);
 
-  let filtered = students;
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(sortDir === "asc" ? "desc" : "asc");
+    else { setSortKey(key); setSortDir("asc"); }
+  };
+
+  let filtered = [...students];
 
   if (searchName) {
     const q = searchName.toLowerCase();
@@ -61,11 +78,81 @@ const StudentsPage = () => {
   if (filterStatus === "Needs Practice") filtered = filtered.filter((s) => s.needsPractice);
   else if (filterStatus === "On Track") filtered = filtered.filter((s) => !s.needsPractice);
 
+  // Sort
+  filtered.sort((a, b) => {
+    let cmp = 0;
+    switch (sortKey) {
+      case "name": cmp = a.name.localeCompare(b.name); break;
+      case "unit": cmp = a.unit.localeCompare(b.unit); break;
+      case "deadline": cmp = a.daysRemaining - b.daysRemaining; break;
+      case "walkthrough": cmp = a.walkthroughComplete - b.walkthroughComplete; break;
+      case "verification": cmp = a.verificationStatus.localeCompare(b.verificationStatus); break;
+      case "errors": cmp = (studentErrors[a.id]?.length || 0) - (studentErrors[b.id]?.length || 0); break;
+      case "status": cmp = (a.needsPractice ? 0 : 1) - (b.needsPractice ? 0 : 1); break;
+    }
+    return sortDir === "asc" ? cmp : -cmp;
+  });
+
+  // Summary stats
+  const totalCount = students.length;
+  const completedCount = students.filter((s) => s.walkthroughComplete === 100 && s.verificationStatus === "Verified").length;
+  const needsPracticeCount = students.filter((s) => s.needsPractice).length;
+  const avgProgress = Math.round(students.reduce((s, st) => s + st.walkthroughComplete, 0) / students.length);
+
+  const handleSendMessage = () => {
+    setMessageSent(true);
+    setTimeout(() => {
+      setMessageSent(false);
+      setMessageText("");
+      setMessageStudent(null);
+    }, 2000);
+  };
+
+  const handleAddModule = (type: string) => {
+    setAddModuleStudent(null);
+  };
+
+  const SortHeader = ({ label, field }: { label: string; field: SortKey }) => (
+    <th
+      className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+      onClick={() => handleSort(field)}
+    >
+      <div className="flex items-center gap-1">
+        {label}
+        <ArrowUpDown className={`h-3 w-3 ${sortKey === field ? "text-primary" : "text-muted-foreground/40"}`} />
+      </div>
+    </th>
+  );
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-5">
       <div>
         <h2 className="text-xl font-bold text-foreground">Students & Analytics</h2>
         <p className="text-sm text-muted-foreground">Full student list with training analytics</p>
+      </div>
+
+      {/* Summary stats */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="rounded-xl bg-card p-4 shadow-card text-center">
+          <Users className="h-4 w-4 text-primary mx-auto mb-1" />
+          <p className="text-2xl font-bold text-foreground">{totalCount}</p>
+          <p className="text-[10px] text-muted-foreground">Total Students</p>
+        </div>
+        <div className="rounded-xl bg-card p-4 shadow-card text-center">
+          <CheckCircle className="h-4 w-4 text-success mx-auto mb-1" />
+          <p className="text-2xl font-bold text-success">{completedCount}</p>
+          <p className="text-[10px] text-muted-foreground">Completed</p>
+        </div>
+        <div className="rounded-xl bg-card p-4 shadow-card text-center">
+          <AlertTriangle className="h-4 w-4 text-destructive mx-auto mb-1" />
+          <p className="text-2xl font-bold text-destructive">{needsPracticeCount}</p>
+          <p className="text-[10px] text-muted-foreground">Need Practice</p>
+        </div>
+        <div className="rounded-xl bg-card p-4 shadow-card text-center">
+          <BookOpen className="h-4 w-4 text-primary mx-auto mb-1" />
+          <p className="text-2xl font-bold text-foreground">{avgProgress}%</p>
+          <p className="text-[10px] text-muted-foreground">Avg Progress</p>
+        </div>
       </div>
 
       {/* Filters */}
@@ -132,14 +219,14 @@ const StudentsPage = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50">
-                <th className="px-5 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Student</th>
-                <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Unit</th>
-                <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Deadline</th>
-                <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Walkthrough</th>
-                <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Verification</th>
-                <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Errors</th>
-                <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Status</th>
-                <th className="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"></th>
+                <SortHeader label="Student" field="name" />
+                <SortHeader label="Unit" field="unit" />
+                <SortHeader label="Deadline" field="deadline" />
+                <SortHeader label="Walkthrough" field="walkthrough" />
+                <SortHeader label="Verification" field="verification" />
+                <SortHeader label="Errors" field="errors" />
+                <SortHeader label="Status" field="status" />
+                <th className="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -152,7 +239,7 @@ const StudentsPage = () => {
                     onClick={() => setSelectedStudent(student)}
                     className={`border-b transition-colors hover:bg-muted/30 cursor-pointer ${student.needsPractice ? "bg-destructive/[0.02]" : ""}`}
                   >
-                    <td className="px-5 py-3">
+                    <td className="px-3 py-3">
                       <div className="flex items-center gap-3">
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">{student.avatar}</div>
                         <div>
@@ -194,9 +281,32 @@ const StudentsPage = () => {
                       )}
                     </td>
                     <td className="px-3 py-3 text-right">
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={(e) => e.stopPropagation()}>
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-primary hover:text-primary"
+                          title="Send reminder"
+                          onClick={() => setMessageStudent(student)}
+                        >
+                          <Send className="h-3.5 w-3.5" />
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setAddModuleStudent(student)}>
+                              <Plus className="h-3.5 w-3.5 mr-2" /> Add Module
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setMessageStudent(student)}>
+                              <Send className="h-3.5 w-3.5 mr-2" /> Send Message
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -236,6 +346,65 @@ const StudentsPage = () => {
       </div>
 
       <StudentDetailModal student={selectedStudent} open={!!selectedStudent} onClose={() => setSelectedStudent(null)} />
+
+      {/* Send Message Modal */}
+      <Dialog open={!!messageStudent} onOpenChange={() => setMessageStudent(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Send className="h-4 w-4 text-primary" />
+              Send Reminder
+            </DialogTitle>
+            <DialogDescription>Send a message to {messageStudent?.name}</DialogDescription>
+          </DialogHeader>
+          {messageSent ? (
+            <div className="flex flex-col items-center py-6 gap-2">
+              <CheckCircle className="h-10 w-10 text-success" />
+              <p className="text-sm font-semibold">Message sent!</p>
+            </div>
+          ) : (
+            <div className="space-y-3 mt-2">
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" className="text-[10px] flex-1" onClick={() => { setMessageText("Please complete your training course before the deadline."); }}>📋 Complete Course</Button>
+                <Button variant="outline" size="sm" className="text-[10px] flex-1" onClick={() => { setMessageText("You have been assigned additional practice. Please review."); }}>🔄 Additional Practice</Button>
+              </div>
+              <Textarea placeholder="Custom message…" value={messageText} onChange={(e) => setMessageText(e.target.value)} className="text-xs min-h-[80px]" />
+              <Button className="w-full" size="sm" onClick={handleSendMessage} disabled={!messageText.trim()}>
+                <Send className="h-3.5 w-3.5 mr-1.5" /> Send Message
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Module Modal */}
+      <Dialog open={!!addModuleStudent} onOpenChange={() => setAddModuleStudent(null)}>
+        <DialogContent className="sm:max-w-[380px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="h-4 w-4 text-primary" />
+              Add Module for {addModuleStudent?.name}
+            </DialogTitle>
+            <DialogDescription>Assign additional training if there was an error on upload.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 mt-2">
+            {[
+              { id: "walkthrough", label: "Walkthrough Training", icon: "📖" },
+              { id: "patient-cases", label: "Patient Cases", icon: "🏥" },
+              { id: "verification", label: "Verification of Proficiency", icon: "✅" },
+            ].map((mod) => (
+              <Button
+                key={mod.id}
+                variant="outline"
+                className="w-full justify-start gap-2 text-sm"
+                onClick={() => handleAddModule(mod.id)}
+              >
+                <span>{mod.icon}</span> {mod.label}
+              </Button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

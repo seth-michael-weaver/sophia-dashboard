@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { patientCases } from "@/data/mockData";
+import { patientCases, type PatientCase } from "@/data/mockData";
 import { ScatterChart, Scatter, XAxis, YAxis, ZAxis, ResponsiveContainer, Tooltip, CartesianGrid } from "recharts";
 import { Target } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -25,12 +25,23 @@ const enrichedCases = patientCases.map((c) => ({
   successRate: 100 - c.errorRate,
 }));
 
-const CaseDifficulty = () => {
+interface CaseDifficultyProps {
+  onCaseClick?: (difficulty: string) => void;
+  activeDifficulty?: string;
+}
+
+const CaseDifficulty = ({ onCaseClick, activeDifficulty }: CaseDifficultyProps) => {
   const [xAxis, setXAxis] = useState<AxisKey>("errorRate");
   const [yAxis, setYAxis] = useState<AxisKey>("avgScore");
 
   const xLabel = axisOptions.find((o) => o.value === xAxis)?.label ?? "";
   const yLabel = axisOptions.find((o) => o.value === yAxis)?.label ?? "";
+
+  const handleScatterClick = (data: any) => {
+    if (onCaseClick && data?.difficulty) {
+      onCaseClick(data.difficulty);
+    }
+  };
 
   return (
     <div className="rounded-xl bg-card p-5 shadow-card animate-fade-in">
@@ -38,16 +49,25 @@ const CaseDifficulty = () => {
         <Target className="h-4 w-4 text-primary" />
         <h3 className="text-sm font-semibold text-foreground">Case Difficulty</h3>
       </div>
-      <p className="mb-3 text-xs text-muted-foreground">Actionable priority by patient case · Color = difficulty</p>
+      <p className="mb-3 text-xs text-muted-foreground">Click a dot to filter cases by difficulty below</p>
 
       {/* Legend */}
       <div className="flex items-center gap-3 mb-3">
         {Object.entries(difficultyColors).map(([name, color]) => (
-          <div key={name} className="flex items-center gap-1">
+          <button
+            key={name}
+            className={`flex items-center gap-1 rounded-full px-2 py-0.5 transition-opacity ${
+              activeDifficulty && activeDifficulty !== name ? "opacity-30" : ""
+            } ${activeDifficulty === name ? "ring-1 ring-primary" : ""}`}
+            onClick={() => onCaseClick?.(name)}
+          >
             <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
             <span className="text-[10px] text-muted-foreground">{name}</span>
-          </div>
+          </button>
         ))}
+        {activeDifficulty && (
+          <button onClick={() => onCaseClick?.("")} className="text-[10px] text-destructive hover:underline ml-auto">Clear</button>
+        )}
       </div>
 
       {/* Axis selectors */}
@@ -98,10 +118,12 @@ const CaseDifficulty = () => {
                 key={diff}
                 data={enrichedCases.filter((c) => c.difficulty === diff)}
                 fill={difficultyColors[diff]}
-                fillOpacity={0.7}
+                fillOpacity={activeDifficulty && activeDifficulty !== diff ? 0.15 : 0.7}
                 stroke={difficultyColors[diff]}
                 strokeWidth={1}
                 name={diff}
+                className="cursor-pointer"
+                onClick={handleScatterClick}
               />
             ))}
           </ScatterChart>

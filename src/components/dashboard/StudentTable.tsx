@@ -32,6 +32,9 @@ const studentErrors: Record<string, string[]> = {
   "12": ["Through-and-Through", "Guidewire Misplacement"],
 };
 
+type SortKey = "name" | "unit" | "walkthrough" | "verification" | "deadline" | "errors" | "status";
+type SortDir = "asc" | "desc";
+
 interface StudentTableProps {
   activeUnit: string;
   activeStatus?: string;
@@ -41,12 +44,19 @@ interface StudentTableProps {
 
 const StudentTable = ({ activeUnit, activeStatus, activeError, dashboardMode }: StudentTableProps) => {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey>("name");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(sortDir === "asc" ? "desc" : "asc");
+    else { setSortKey(key); setSortDir("asc"); }
+  };
 
   let filtered = activeUnit === "All"
     ? students
     : students.filter((s) => s.unit === activeUnit);
 
-  // Filter by progress chart status (supports "Category:overdue" variant)
+  // Filter by progress chart status
   if (activeStatus) {
     const isOverdueFilter = activeStatus.endsWith(":overdue");
     const statusName = isOverdueFilter ? activeStatus.replace(":overdue", "") : activeStatus;
@@ -55,10 +65,8 @@ const StudentTable = ({ activeUnit, activeStatus, activeError, dashboardMode }: 
       filtered = filtered.filter((s) => s.walkthroughComplete === 100);
     } else if (statusName === "Verification Done") {
       filtered = filtered.filter((s) => s.verificationStatus === "Verified");
-    } else if (statusName === "In Progress") {
-      filtered = filtered.filter((s) => s.verificationStatus === "In Progress" && s.walkthroughComplete < 100);
     } else if (statusName === "Not Started") {
-      filtered = filtered.filter((s) => s.verificationStatus === "Not Started");
+      filtered = filtered.filter((s) => s.walkthroughComplete === 0);
     }
 
     if (isOverdueFilter) {
@@ -76,6 +84,33 @@ const StudentTable = ({ activeUnit, activeStatus, activeError, dashboardMode }: 
     filtered = filtered.filter((s) => s.needsPractice || s.daysRemaining <= 3);
   }
 
+  // Sort
+  const sorted = [...filtered].sort((a, b) => {
+    let cmp = 0;
+    switch (sortKey) {
+      case "name": cmp = a.name.localeCompare(b.name); break;
+      case "unit": cmp = a.unit.localeCompare(b.unit); break;
+      case "walkthrough": cmp = a.walkthroughComplete - b.walkthroughComplete; break;
+      case "verification": cmp = a.verificationStatus.localeCompare(b.verificationStatus); break;
+      case "deadline": cmp = a.daysRemaining - b.daysRemaining; break;
+      case "errors": cmp = (studentErrors[a.id]?.length || 0) - (studentErrors[b.id]?.length || 0); break;
+      case "status": cmp = (a.needsPractice ? 0 : 1) - (b.needsPractice ? 0 : 1); break;
+    }
+    return sortDir === "asc" ? cmp : -cmp;
+  });
+
+  const SortHeader = ({ label, field }: { label: string; field: SortKey }) => (
+    <th
+      className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+      onClick={() => handleSort(field)}
+    >
+      <div className="flex items-center gap-1">
+        {label}
+        <ArrowUpDown className={`h-3 w-3 ${sortKey === field ? "text-primary" : "text-muted-foreground/40"}`} />
+      </div>
+    </th>
+  );
+
   return (
     <>
       <div className="rounded-xl bg-card shadow-card animate-fade-in overflow-hidden">
@@ -85,15 +120,12 @@ const StudentTable = ({ activeUnit, activeStatus, activeError, dashboardMode }: 
               {dashboardMode ? "Students Needing Attention" : "Student Progress"}
             </h3>
             <p className="text-xs text-muted-foreground">
-              {filtered.length} students
+              {sorted.length} students
               {activeStatus && <span className="ml-1 text-primary font-medium">· Status: {activeStatus}</span>}
               {activeError && <span className="ml-1 text-destructive font-medium">· Error: {activeError}</span>}
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="text-xs gap-1.5">
-              <ArrowUpDown className="h-3 w-3" /> Sort
-            </Button>
             <Button size="sm" className="text-xs">
               Assign Practice
             </Button>
@@ -104,19 +136,18 @@ const StudentTable = ({ activeUnit, activeStatus, activeError, dashboardMode }: 
           <table className="w-full text-sm">
             <thead>
               <tr className="border-t border-b bg-muted/50">
-                <th className="px-5 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Student</th>
-                <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Unit</th>
-                <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Walkthrough</th>
-                <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Verification</th>
-                <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Score</th>
-                <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Deadline</th>
-                <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Errors</th>
-                <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Status</th>
+                <SortHeader label="Student" field="name" />
+                <SortHeader label="Unit" field="unit" />
+                <SortHeader label="Deadline" field="deadline" />
+                <SortHeader label="Walkthrough" field="walkthrough" />
+                <SortHeader label="Verification" field="verification" />
+                <SortHeader label="Errors" field="errors" />
+                <SortHeader label="Status" field="status" />
                 <th className="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"></th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((student) => {
+              {sorted.map((student) => {
                 const deadline = getDeadlineBadge(student.daysRemaining);
                 const errors = studentErrors[student.id] || [];
                 return (
@@ -127,7 +158,7 @@ const StudentTable = ({ activeUnit, activeStatus, activeError, dashboardMode }: 
                       student.needsPractice ? "bg-destructive/[0.02]" : ""
                     }`}
                   >
-                    <td className="px-5 py-3">
+                    <td className="px-3 py-3">
                       <div className="flex items-center gap-3">
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
                           {student.avatar}
@@ -140,6 +171,11 @@ const StudentTable = ({ activeUnit, activeStatus, activeError, dashboardMode }: 
                     </td>
                     <td className="px-3 py-3">
                       <span className="text-xs text-muted-foreground">{student.unit}</span>
+                    </td>
+                    <td className="px-3 py-3">
+                      <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${deadline.className}`}>
+                        {deadline.text}
+                      </span>
                     </td>
                     <td className="px-3 py-3">
                       <div className="flex items-center gap-2">
@@ -158,22 +194,6 @@ const StudentTable = ({ activeUnit, activeStatus, activeError, dashboardMode }: 
                       </span>
                     </td>
                     <td className="px-3 py-3">
-                      <span className={`text-sm font-semibold ${
-                        student.latestScore >= 80
-                          ? "text-success"
-                          : student.latestScore >= 60
-                          ? "text-warning"
-                          : "text-destructive"
-                      }`}>
-                        {student.latestScore}
-                      </span>
-                    </td>
-                    <td className="px-3 py-3">
-                      <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${deadline.className}`}>
-                        {deadline.text}
-                      </span>
-                    </td>
-                    <td className="px-3 py-3">
                       {errors.length > 0 ? (
                         <span className="text-[10px] font-semibold text-destructive">{errors.length} errors</span>
                       ) : (
@@ -181,11 +201,13 @@ const StudentTable = ({ activeUnit, activeStatus, activeError, dashboardMode }: 
                       )}
                     </td>
                     <td className="px-3 py-3">
-                      {student.needsPractice && (
+                      {student.needsPractice ? (
                         <div className="flex items-center gap-1 text-destructive">
                           <Flag className="h-3 w-3 fill-current" />
                           <span className="text-[10px] font-semibold">Needs Practice</span>
                         </div>
+                      ) : (
+                        <span className="text-[10px] text-success font-medium">On Track</span>
                       )}
                     </td>
                     <td className="px-3 py-3 text-right">
@@ -196,9 +218,9 @@ const StudentTable = ({ activeUnit, activeStatus, activeError, dashboardMode }: 
                   </tr>
                 );
               })}
-              {filtered.length === 0 && (
+              {sorted.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-5 py-8 text-center text-sm text-muted-foreground">
+                  <td colSpan={8} className="px-5 py-8 text-center text-sm text-muted-foreground">
                     No students match the current filters.
                   </td>
                 </tr>

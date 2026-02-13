@@ -5,6 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import BatchUploadModal from "./BatchUploadModal";
+import PurchaseLicensesModal from "./PurchaseLicensesModal";
 
 interface SummaryCardsProps {
   activeUnit: string;
@@ -18,7 +19,6 @@ const units = ["All", "Anesthesia", "Surgery", "Internal Medicine", "Advanced Pr
 const progressCategories = [
   { name: "Walkthrough Complete", color: "hsl(217, 91%, 60%)" },
   { name: "Verification Done", color: "hsl(210, 78%, 46%)" },
-  { name: "In Progress", color: "hsl(199, 89%, 48%)" },
   { name: "Not Started", color: "hsl(214, 32%, 78%)" },
 ];
 
@@ -33,6 +33,7 @@ const studentErrors: Record<string, string[]> = {
 
 const SummaryCards = ({ activeUnit, onUnitChange, activeStatus, onStatusChange }: SummaryCardsProps) => {
   const [batchOpen, setBatchOpen] = useState(false);
+  const [purchaseOpen, setPurchaseOpen] = useState(false);
   const { licensesUsed, licensesTotal } = summaryStats;
   const usagePercent = Math.round((licensesUsed / licensesTotal) * 100);
 
@@ -51,13 +52,12 @@ const SummaryCards = ({ activeUnit, onUnitChange, activeStatus, onStatusChange }
 
   const walkthroughDone = unitStudents.filter((s) => s.walkthroughComplete === 100).length;
   const verificationDone = unitStudents.filter((s) => s.verificationStatus === "Verified").length;
-  const inProgress = unitStudents.filter((s) => s.verificationStatus === "In Progress" && s.walkthroughComplete < 100).length;
-  const notStarted = unitStudents.filter((s) => s.verificationStatus === "Not Started").length;
+  // Not Started = haven't started walkthrough at all (0%)
+  const notStarted = unitStudents.filter((s) => s.walkthroughComplete === 0).length;
 
   const progressData = [
     { name: "Walkthrough Complete", value: totalStudents > 0 ? Math.round((walkthroughDone / totalStudents) * 100) : 0, count: walkthroughDone },
     { name: "Verification Done", value: totalStudents > 0 ? Math.round((verificationDone / totalStudents) * 100) : 0, count: verificationDone },
-    { name: "In Progress", value: totalStudents > 0 ? Math.round((inProgress / totalStudents) * 100) : 0, count: inProgress },
     { name: "Not Started", value: totalStudents > 0 ? Math.round((notStarted / totalStudents) * 100) : 0, count: notStarted },
   ];
 
@@ -65,8 +65,7 @@ const SummaryCards = ({ activeUnit, onUnitChange, activeStatus, onStatusChange }
     let categoryStudents = unitStudents;
     if (categoryName === "Walkthrough Complete") categoryStudents = unitStudents.filter((s) => s.walkthroughComplete === 100);
     else if (categoryName === "Verification Done") categoryStudents = unitStudents.filter((s) => s.verificationStatus === "Verified");
-    else if (categoryName === "In Progress") categoryStudents = unitStudents.filter((s) => s.verificationStatus === "In Progress" && s.walkthroughComplete < 100);
-    else if (categoryName === "Not Started") categoryStudents = unitStudents.filter((s) => s.verificationStatus === "Not Started");
+    else if (categoryName === "Not Started") categoryStudents = unitStudents.filter((s) => s.walkthroughComplete === 0);
     return categoryStudents.filter((s) => s.daysRemaining <= 3);
   };
 
@@ -116,7 +115,7 @@ const SummaryCards = ({ activeUnit, onUnitChange, activeStatus, onStatusChange }
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {/* Card 1: Students + Training Progress + Needs Attention */}
-        <div className="rounded-xl bg-card p-5 shadow-card animate-fade-in">
+        <Link to="/students" className="block rounded-xl bg-card p-5 shadow-card animate-fade-in hover:shadow-lg transition-shadow cursor-pointer">
           <div className="flex items-center gap-3 mb-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-info/10 text-info">
               <Users className="h-5 w-5" />
@@ -138,11 +137,11 @@ const SummaryCards = ({ activeUnit, onUnitChange, activeStatus, onStatusChange }
           </div>
 
           {/* Training Progress */}
-          <div className="border-t pt-3 mb-3">
+          <div className="border-t pt-3 mb-3" onClick={(e) => e.preventDefault()}>
             <div className="flex items-center justify-between mb-2">
               <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Training Progress</p>
               {activeStatus && onStatusChange && (
-                <button onClick={() => onStatusChange("")} className="text-[10px] text-destructive hover:underline font-medium">Clear</button>
+                <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onStatusChange(""); }} className="text-[10px] text-destructive hover:underline font-medium">Clear</button>
               )}
             </div>
             <div className="space-y-2">
@@ -156,7 +155,7 @@ const SummaryCards = ({ activeUnit, onUnitChange, activeStatus, onStatusChange }
                   <div
                     key={item.name}
                     className={`cursor-pointer transition-opacity rounded-md px-1.5 py-1 -mx-1.5 hover:bg-muted/50 ${isDimmed ? "opacity-30" : ""}`}
-                    onClick={() => handleStatusClick(item.name)}
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleStatusClick(item.name); }}
                   >
                     <div className="flex items-center justify-between mb-0.5">
                       <span className="text-[10px] font-medium text-foreground">{item.name}</span>
@@ -170,7 +169,7 @@ const SummaryCards = ({ activeUnit, onUnitChange, activeStatus, onStatusChange }
                         <Popover>
                           <PopoverTrigger asChild>
                             <button
-                              onClick={(e) => e.stopPropagation()}
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
                               className={`flex items-center gap-0.5 shrink-0 rounded px-1 py-0.5 text-[9px] font-bold transition-all ${
                                 activeStatus === `${item.name}:overdue` ? "bg-destructive text-white ring-2 ring-destructive/30" : "bg-destructive/10 text-destructive hover:bg-destructive/20"
                               }`}
@@ -216,10 +215,10 @@ const SummaryCards = ({ activeUnit, onUnitChange, activeStatus, onStatusChange }
               </div>
             </div>
           </div>
-        </div>
+        </Link>
 
         {/* Card 2: Common Errors & Cases */}
-        <div className="rounded-xl bg-card p-5 shadow-card animate-fade-in">
+        <Link to="/cases" className="block rounded-xl bg-card p-5 shadow-card animate-fade-in hover:shadow-lg transition-shadow cursor-pointer">
           <div className="flex items-center gap-3 mb-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
               <Target className="h-5 w-5" />
@@ -272,13 +271,13 @@ const SummaryCards = ({ activeUnit, onUnitChange, activeStatus, onStatusChange }
             </div>
           </div>
 
-          <Link to="/cases" className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors">
+          <span className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors">
             View all cases <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-        </div>
+          </span>
+        </Link>
 
         {/* Card 3: Licenses & Practice */}
-        <div className="rounded-xl bg-card p-5 shadow-card animate-fade-in">
+        <Link to="/licenses" className="block rounded-xl bg-card p-5 shadow-card animate-fade-in hover:shadow-lg transition-shadow cursor-pointer">
           <div className="flex items-center gap-3 mb-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-warning/10 text-warning">
               <KeyRound className="h-5 w-5" />
@@ -304,25 +303,26 @@ const SummaryCards = ({ activeUnit, onUnitChange, activeStatus, onStatusChange }
             </p>
           </div>
 
-          <div className="space-y-2 pt-2 border-t">
-            <Button className="w-full justify-start gap-2 bg-primary/10 text-primary hover:bg-primary/20 border-none" variant="outline" size="sm">
+          <div className="space-y-2 pt-2 border-t" onClick={(e) => e.preventDefault()}>
+            <Button className="w-full justify-start gap-2 bg-primary/10 text-primary hover:bg-primary/20 border-none" variant="outline" size="sm" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setPurchaseOpen(true); }}>
               <ShoppingCart className="h-3.5 w-3.5" /> Purchase Licenses
             </Button>
-            <Button className="w-full justify-start gap-2" variant="outline" size="sm" onClick={() => setBatchOpen(true)}>
+            <Button className="w-full justify-start gap-2" variant="outline" size="sm" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setBatchOpen(true); }}>
               <Upload className="h-3.5 w-3.5" /> Batch Upload Trainees
             </Button>
-            <Button className="w-full justify-start gap-2" variant="outline" size="sm">
+            <Button className="w-full justify-start gap-2" variant="outline" size="sm" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
               <Sparkles className="h-3.5 w-3.5" /> Assign Practice
             </Button>
           </div>
 
-          <Link to="/licenses" className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors">
+          <span className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors">
             Manage licenses & access <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-        </div>
+          </span>
+        </Link>
       </div>
 
       <BatchUploadModal open={batchOpen} onClose={() => setBatchOpen(false)} />
+      <PurchaseLicensesModal open={purchaseOpen} onClose={() => setPurchaseOpen(false)} />
     </div>
   );
 };
