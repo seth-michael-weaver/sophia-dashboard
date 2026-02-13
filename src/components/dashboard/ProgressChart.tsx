@@ -1,4 +1,4 @@
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell, LabelList } from "recharts";
 
 const data = [
   { name: "Walkthrough Complete", value: 45, color: "hsl(217, 91%, 60%)" },
@@ -21,64 +21,50 @@ const ProgressChart = ({ activeStatus, onStatusChange }: ProgressChartProps) => 
 
   return (
     <div className="rounded-xl bg-card p-5 shadow-card animate-fade-in">
-      <h3 className="mb-1 text-sm font-semibold text-foreground">Training Progress</h3>
-      <p className="mb-4 text-xs text-muted-foreground">Click a segment to filter students</p>
-      <div className="h-[180px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={data}
-              cx="50%"
-              cy="50%"
-              innerRadius={50}
-              outerRadius={80}
-              paddingAngle={3}
-              dataKey="value"
-              stroke="none"
-              style={{ cursor: "pointer" }}
-              onClick={(_, index) => handleClick(data[index].name)}
-            >
-              {data.map((entry, index) => (
-                <Cell
-                  key={`cell-${index}`}
-                  fill={entry.color}
-                  opacity={activeStatus && activeStatus !== entry.name ? 0.3 : 1}
-                />
-              ))}
-            </Pie>
-            <Tooltip
-              contentStyle={{
-                background: "hsl(0 0% 100%)",
-                border: "1px solid hsl(214 20% 90%)",
-                borderRadius: "8px",
-                fontSize: "12px",
-                boxShadow: "0 4px 12px -2px rgba(0,0,0,0.1)",
-              }}
-              formatter={(value: number) => [`${value}%`, ""]}
-            />
-          </PieChart>
-        </ResponsiveContainer>
+      <div className="flex items-center justify-between mb-1">
+        <h3 className="text-sm font-semibold text-foreground">Training Progress</h3>
+        {activeStatus && onStatusChange && (
+          <button onClick={() => onStatusChange("")} className="text-[10px] text-destructive hover:underline">Clear filter</button>
+        )}
       </div>
-      {/* Legend as clickable buttons */}
-      <div className="mt-2 flex flex-wrap gap-2 justify-center">
+      <p className="mb-4 text-xs text-muted-foreground">Click a bar to filter students</p>
+
+      <div className="space-y-4">
         {data.map((item) => (
-          <button
+          <div
             key={item.name}
+            className={`cursor-pointer transition-opacity ${activeStatus && activeStatus !== item.name ? "opacity-30" : ""}`}
             onClick={() => handleClick(item.name)}
-            className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold transition-all cursor-pointer ${
-              activeStatus === item.name
-                ? "ring-2 ring-primary ring-offset-1"
-                : activeStatus
-                ? "opacity-40"
-                : ""
-            }`}
           >
-            <span
-              className="inline-block h-2 w-2 rounded-full"
-              style={{ backgroundColor: item.color }}
-            />
-            {item.name} ({item.value}%)
-          </button>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-medium text-foreground">{item.name}</span>
+              <span className="text-xs font-bold text-foreground">{item.value}%</span>
+            </div>
+            <div className="relative h-3 w-full rounded-full bg-muted overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{
+                  width: `${item.value}%`,
+                  backgroundColor: item.color,
+                }}
+              />
+              {/* Hatched pattern for remaining */}
+              <div
+                className="absolute top-0 h-full rounded-r-full"
+                style={{
+                  left: `${item.value}%`,
+                  width: `${100 - item.value}%`,
+                  backgroundImage: `repeating-linear-gradient(
+                    -45deg,
+                    transparent,
+                    transparent 3px,
+                    hsl(214, 20%, 85%) 3px,
+                    hsl(214, 20%, 85%) 4px
+                  )`,
+                }}
+              />
+            </div>
+          </div>
         ))}
       </div>
     </div>
