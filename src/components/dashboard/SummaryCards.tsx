@@ -289,7 +289,7 @@ const SummaryCards = ({ activeUnit, onUnitChange }: SummaryCardsProps) => {
               <ShoppingCart className="h-3.5 w-3.5" /> Purchase Licenses
             </Button>
             <Button className="w-full justify-start gap-2" variant="outline" size="sm" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setBatchOpen(true); }}>
-              <Upload className="h-3.5 w-3.5" /> Batch Upload Trainees
+              <Upload className="h-3.5 w-3.5" /> Start New Training Cohort
             </Button>
             <Button className="w-full justify-start gap-2" variant="outline" size="sm" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
               <Sparkles className="h-3.5 w-3.5" /> Assign Practice
