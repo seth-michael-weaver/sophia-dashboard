@@ -1,7 +1,6 @@
 import {
   LayoutDashboard,
   Users,
-  BarChart3,
   UserCog,
   KeyRound,
   LogOut,
@@ -21,8 +20,7 @@ import {
 
 const navItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Students", url: "/students", icon: Users },
-  { title: "Training & Analytics", url: "/training", icon: BarChart3 },
+  { title: "Students & Analytics", url: "/students", icon: Users },
   { title: "Coordinators", url: "/coordinators", icon: UserCog },
   { title: "Licenses", url: "/licenses", icon: KeyRound },
 ];
