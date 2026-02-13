@@ -1,6 +1,6 @@
 import { useState } from "react";
 import SummaryCards from "@/components/dashboard/SummaryCards";
-import ProgressChart from "@/components/dashboard/ProgressChart";
+
 import ErrorAnalytics from "@/components/dashboard/ErrorAnalytics";
 import StudentTable from "@/components/dashboard/StudentTable";
 
@@ -16,10 +16,9 @@ const Dashboard = () => {
         <p className="text-sm text-muted-foreground">Students needing attention and key metrics</p>
       </div>
 
-      <SummaryCards activeUnit={activeUnit} onUnitChange={setActiveUnit} />
+      <SummaryCards activeUnit={activeUnit} onUnitChange={setActiveUnit} activeStatus={activeStatus} onStatusChange={setActiveStatus} />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <ProgressChart activeStatus={activeStatus} onStatusChange={setActiveStatus} />
         <ErrorAnalytics activeError={activeError} onErrorChange={setActiveError} />
       </div>
 
