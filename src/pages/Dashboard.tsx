@@ -1,13 +1,12 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
+import { ArrowRight } from "lucide-react";
 import SummaryCards from "@/components/dashboard/SummaryCards";
-
-import ErrorAnalytics from "@/components/dashboard/ErrorAnalytics";
 import StudentTable from "@/components/dashboard/StudentTable";
 
 const Dashboard = () => {
   const [activeUnit, setActiveUnit] = useState("All");
   const [activeStatus, setActiveStatus] = useState("");
-  const [activeError, setActiveError] = useState("");
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
@@ -18,17 +17,21 @@ const Dashboard = () => {
 
       <SummaryCards activeUnit={activeUnit} onUnitChange={setActiveUnit} activeStatus={activeStatus} onStatusChange={setActiveStatus} />
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <ErrorAnalytics activeError={activeError} onErrorChange={setActiveError} />
-      </div>
-
       {/* Dashboard only shows students who are behind or need practice */}
       <StudentTable
         activeUnit={activeUnit}
         activeStatus={activeStatus}
-        activeError={activeError}
         dashboardMode
       />
+
+      <div className="flex justify-end">
+        <Link
+          to="/students"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+        >
+          View all student progress <ArrowRight className="h-4 w-4" />
+        </Link>
+      </div>
 
       {/* Recent Activity */}
       <div className="rounded-xl bg-card p-5 shadow-card animate-fade-in">
