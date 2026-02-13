@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { students, type Student, errorTypes } from "@/data/mockData";
+import { students, type Student } from "@/data/mockData";
 import { MoreHorizontal, Flag, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import StudentDetailModal from "@/components/dashboard/StudentDetailModal";
+import ErrorAnalytics from "@/components/dashboard/ErrorAnalytics";
+import CaseDifficulty from "@/components/dashboard/CaseDifficulty";
 
 const units = ["All", "Anesthesia", "Surgery", "Internal Medicine", "Advanced Practice Providers"];
 
@@ -41,6 +43,7 @@ const StudentsPage = () => {
   const [filterDeadline, setFilterDeadline] = useState("All");
   const [filterErrors, setFilterErrors] = useState("All");
   const [filterStatus, setFilterStatus] = useState("All");
+  const [activeError, setActiveError] = useState("");
 
   let filtered = students;
 
@@ -48,42 +51,25 @@ const StudentsPage = () => {
     const q = searchName.toLowerCase();
     filtered = filtered.filter((s) => s.name.toLowerCase().includes(q));
   }
-  if (filterUnit !== "All") {
-    filtered = filtered.filter((s) => s.unit === filterUnit);
-  }
-  if (filterWalkthrough === "Complete") {
-    filtered = filtered.filter((s) => s.walkthroughComplete === 100);
-  } else if (filterWalkthrough === "In Progress") {
-    filtered = filtered.filter((s) => s.walkthroughComplete > 0 && s.walkthroughComplete < 100);
-  } else if (filterWalkthrough === "Not Started") {
-    filtered = filtered.filter((s) => s.walkthroughComplete === 0);
-  }
-  if (filterVerification !== "All") {
-    filtered = filtered.filter((s) => s.verificationStatus === filterVerification);
-  }
-  if (filterDeadline === "Overdue") {
-    filtered = filtered.filter((s) => s.daysRemaining < 0);
-  } else if (filterDeadline === "Due Soon") {
-    filtered = filtered.filter((s) => s.daysRemaining >= 0 && s.daysRemaining <= 3);
-  } else if (filterDeadline === "On Track") {
-    filtered = filtered.filter((s) => s.daysRemaining > 3);
-  }
-  if (filterErrors === "Has Errors") {
-    filtered = filtered.filter((s) => (studentErrors[s.id]?.length || 0) > 0);
-  } else if (filterErrors === "No Errors") {
-    filtered = filtered.filter((s) => !studentErrors[s.id]?.length);
-  }
-  if (filterStatus === "Needs Practice") {
-    filtered = filtered.filter((s) => s.needsPractice);
-  } else if (filterStatus === "On Track") {
-    filtered = filtered.filter((s) => !s.needsPractice);
-  }
+  if (filterUnit !== "All") filtered = filtered.filter((s) => s.unit === filterUnit);
+  if (filterWalkthrough === "Complete") filtered = filtered.filter((s) => s.walkthroughComplete === 100);
+  else if (filterWalkthrough === "In Progress") filtered = filtered.filter((s) => s.walkthroughComplete > 0 && s.walkthroughComplete < 100);
+  else if (filterWalkthrough === "Not Started") filtered = filtered.filter((s) => s.walkthroughComplete === 0);
+  if (filterVerification !== "All") filtered = filtered.filter((s) => s.verificationStatus === filterVerification);
+  if (filterDeadline === "Overdue") filtered = filtered.filter((s) => s.daysRemaining < 0);
+  else if (filterDeadline === "Due Soon") filtered = filtered.filter((s) => s.daysRemaining >= 0 && s.daysRemaining <= 3);
+  else if (filterDeadline === "On Track") filtered = filtered.filter((s) => s.daysRemaining > 3);
+  if (filterErrors === "Has Errors") filtered = filtered.filter((s) => (studentErrors[s.id]?.length || 0) > 0);
+  else if (filterErrors === "No Errors") filtered = filtered.filter((s) => !studentErrors[s.id]?.length);
+  if (filterStatus === "Needs Practice") filtered = filtered.filter((s) => s.needsPractice);
+  else if (filterStatus === "On Track") filtered = filtered.filter((s) => !s.needsPractice);
+  if (activeError) filtered = filtered.filter((s) => studentErrors[s.id]?.includes(activeError));
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-5">
       <div>
-        <h2 className="text-xl font-bold text-foreground">Student Progress</h2>
-        <p className="text-sm text-muted-foreground">Full student list with filtering</p>
+        <h2 className="text-xl font-bold text-foreground">Students & Analytics</h2>
+        <p className="text-sm text-muted-foreground">Full student list with training analytics</p>
       </div>
 
       {/* Filters */}
@@ -91,18 +77,11 @@ const StudentsPage = () => {
         <div className="flex items-center gap-2 flex-wrap">
           <div className="relative flex-1 min-w-[200px] max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by last name…"
-              value={searchName}
-              onChange={(e) => setSearchName(e.target.value)}
-              className="pl-9 h-9 text-sm"
-            />
+            <Input placeholder="Search by last name…" value={searchName} onChange={(e) => setSearchName(e.target.value)} className="pl-9 h-9 text-sm" />
           </div>
           <Select value={filterUnit} onValueChange={setFilterUnit}>
             <SelectTrigger className="w-[160px] h-9 text-xs"><SelectValue placeholder="Unit" /></SelectTrigger>
-            <SelectContent>
-              {units.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
-            </SelectContent>
+            <SelectContent>{units.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent>
           </Select>
           <Select value={filterDeadline} onValueChange={setFilterDeadline}>
             <SelectTrigger className="w-[130px] h-9 text-xs"><SelectValue placeholder="Deadline" /></SelectTrigger>
@@ -148,7 +127,10 @@ const StudentsPage = () => {
             </SelectContent>
           </Select>
         </div>
-        <p className="text-[11px] text-muted-foreground">{filtered.length} students</p>
+        <p className="text-[11px] text-muted-foreground">
+          {filtered.length} students
+          {activeError && <span className="ml-1 text-destructive font-medium">· Error: {activeError} <button onClick={() => setActiveError("")} className="text-primary hover:underline ml-1">Clear</button></span>}
+        </p>
       </div>
 
       {/* Table */}
@@ -175,28 +157,20 @@ const StudentsPage = () => {
                   <tr
                     key={student.id}
                     onClick={() => setSelectedStudent(student)}
-                    className={`border-b transition-colors hover:bg-muted/30 cursor-pointer ${
-                      student.needsPractice ? "bg-destructive/[0.02]" : ""
-                    }`}
+                    className={`border-b transition-colors hover:bg-muted/30 cursor-pointer ${student.needsPractice ? "bg-destructive/[0.02]" : ""}`}
                   >
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-                          {student.avatar}
-                        </div>
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">{student.avatar}</div>
                         <div>
                           <p className="font-medium text-foreground text-[13px]">{student.name}</p>
                           <p className="text-[11px] text-muted-foreground">{student.lastActivity}</p>
                         </div>
                       </div>
                     </td>
+                    <td className="px-3 py-3"><span className="text-xs text-muted-foreground">{student.unit}</span></td>
                     <td className="px-3 py-3">
-                      <span className="text-xs text-muted-foreground">{student.unit}</span>
-                    </td>
-                    <td className="px-3 py-3">
-                      <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${deadline.className}`}>
-                        {deadline.text}
-                      </span>
+                      <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${deadline.className}`}>{deadline.text}</span>
                     </td>
                     <td className="px-3 py-3">
                       <div className="flex items-center gap-2">
@@ -207,9 +181,7 @@ const StudentsPage = () => {
                       </div>
                     </td>
                     <td className="px-3 py-3">
-                      <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${getVerificationBadge(student.verificationStatus)}`}>
-                        {student.verificationStatus}
-                      </span>
+                      <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${getVerificationBadge(student.verificationStatus)}`}>{student.verificationStatus}</span>
                     </td>
                     <td className="px-3 py-3">
                       {errors.length > 0 ? (
@@ -238,9 +210,7 @@ const StudentsPage = () => {
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-5 py-8 text-center text-sm text-muted-foreground">
-                    No students match the current filters.
-                  </td>
+                  <td colSpan={8} className="px-5 py-8 text-center text-sm text-muted-foreground">No students match the current filters.</td>
                 </tr>
               )}
             </tbody>
@@ -262,9 +232,7 @@ const StudentsPage = () => {
             { text: "Batch upload: 12 new students added to Surgery", time: "2 days ago", type: "info" },
           ].map((item, i) => (
             <div key={i} className="flex items-start gap-3 group cursor-pointer">
-              <div className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${
-                item.type === "success" ? "bg-success" : item.type === "error" ? "bg-destructive" : "bg-primary"
-              }`} />
+              <div className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${item.type === "success" ? "bg-success" : item.type === "error" ? "bg-destructive" : "bg-primary"}`} />
               <div className="min-w-0">
                 <p className="text-xs text-foreground group-hover:text-primary transition-colors">{item.text}</p>
                 <p className="text-[10px] text-muted-foreground">{item.time}</p>
@@ -274,11 +242,13 @@ const StudentsPage = () => {
         </div>
       </div>
 
-      <StudentDetailModal
-        student={selectedStudent}
-        open={!!selectedStudent}
-        onClose={() => setSelectedStudent(null)}
-      />
+      {/* Error Analytics & Case Difficulty */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <ErrorAnalytics activeError={activeError} onErrorChange={setActiveError} />
+        <CaseDifficulty />
+      </div>
+
+      <StudentDetailModal student={selectedStudent} open={!!selectedStudent} onClose={() => setSelectedStudent(null)} />
     </div>
   );
 };

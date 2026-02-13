@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
+import WelcomeBanner from "@/components/dashboard/WelcomeBanner";
 import SummaryCards from "@/components/dashboard/SummaryCards";
 import StudentTable from "@/components/dashboard/StudentTable";
 
@@ -10,19 +11,11 @@ const Dashboard = () => {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-foreground">Dashboard</h2>
-        <p className="text-sm text-muted-foreground">Students needing attention and key metrics</p>
-      </div>
+      <WelcomeBanner />
 
       <SummaryCards activeUnit={activeUnit} onUnitChange={setActiveUnit} activeStatus={activeStatus} onStatusChange={setActiveStatus} />
 
-      {/* Dashboard only shows students who are behind or need practice */}
-      <StudentTable
-        activeUnit={activeUnit}
-        activeStatus={activeStatus}
-        dashboardMode
-      />
+      <StudentTable activeUnit={activeUnit} activeStatus={activeStatus} dashboardMode />
 
       <div className="flex justify-end">
         <Link
