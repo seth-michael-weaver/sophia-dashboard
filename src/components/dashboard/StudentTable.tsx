@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { students, type Student } from "@/data/mockData";
+import { students, type Student, errorTypes } from "@/data/mockData";
 import { MoreHorizontal, Flag, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import StudentDetailModal from "./StudentDetailModal";
@@ -22,19 +22,24 @@ const getVerificationBadge = (status: Student["verificationStatus"]) => {
   }
 };
 
+// Mock mapping of students to errors for filtering
+const studentErrors: Record<string, string[]> = {
+  "2": ["Arterial Puncture", "Through-and-Through", "Excessive Cannulation Attempts"],
+  "3": ["Guidewire Misplacement", "Prolonged Arrhythmia"],
+  "6": ["Arterial Puncture", "Failed Cannulation Attempts", "Through-and-Through"],
+  "8": ["Excessive Cannulation Attempts", "Guidewire Misplacement"],
+  "10": ["Arterial Puncture", "Prolonged Arrhythmia", "Failed Cannulation Attempts"],
+  "12": ["Through-and-Through", "Guidewire Misplacement"],
+};
+
 interface StudentTableProps {
   activeUnit: string;
   activeStatus?: string;
+  activeError?: string;
+  dashboardMode?: boolean;
 }
 
-const statusToVerification: Record<string, string[]> = {
-  "Walkthrough Complete": ["Verified", "In Progress", "Not Started"],
-  "Verification Done": ["Verified"],
-  "In Progress": ["In Progress"],
-  "Not Started": ["Not Started"],
-};
-
-const StudentTable = ({ activeUnit, activeStatus }: StudentTableProps) => {
+const StudentTable = ({ activeUnit, activeStatus, activeError, dashboardMode }: StudentTableProps) => {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
 
   let filtered = activeUnit === "All"
@@ -54,15 +59,28 @@ const StudentTable = ({ activeUnit, activeStatus }: StudentTableProps) => {
     }
   }
 
+  // Filter by error type
+  if (activeError) {
+    filtered = filtered.filter((s) => studentErrors[s.id]?.includes(activeError));
+  }
+
+  // Dashboard mode: only show students who need attention
+  if (dashboardMode) {
+    filtered = filtered.filter((s) => s.needsPractice || s.daysRemaining <= 3);
+  }
+
   return (
     <>
       <div className="rounded-xl bg-card shadow-card animate-fade-in overflow-hidden">
         <div className="flex items-center justify-between p-5 pb-3">
           <div>
-            <h3 className="text-sm font-semibold text-foreground">Student Progress</h3>
+            <h3 className="text-sm font-semibold text-foreground">
+              {dashboardMode ? "Students Needing Attention" : "Student Progress"}
+            </h3>
             <p className="text-xs text-muted-foreground">
               {filtered.length} students
-              {activeStatus && <span className="ml-1 text-primary font-medium">· Filtered: {activeStatus}</span>}
+              {activeStatus && <span className="ml-1 text-primary font-medium">· Status: {activeStatus}</span>}
+              {activeError && <span className="ml-1 text-destructive font-medium">· Error: {activeError}</span>}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -85,6 +103,7 @@ const StudentTable = ({ activeUnit, activeStatus }: StudentTableProps) => {
                 <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Verification</th>
                 <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Score</th>
                 <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Deadline</th>
+                <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Errors</th>
                 <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Status</th>
                 <th className="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"></th>
               </tr>
@@ -92,6 +111,7 @@ const StudentTable = ({ activeUnit, activeStatus }: StudentTableProps) => {
             <tbody>
               {filtered.map((student) => {
                 const deadline = getDeadlineBadge(student.daysRemaining);
+                const errors = studentErrors[student.id] || [];
                 return (
                   <tr
                     key={student.id}
@@ -147,6 +167,13 @@ const StudentTable = ({ activeUnit, activeStatus }: StudentTableProps) => {
                       </span>
                     </td>
                     <td className="px-3 py-3">
+                      {errors.length > 0 ? (
+                        <span className="text-[10px] font-semibold text-destructive">{errors.length} errors</span>
+                      ) : (
+                        <span className="text-[10px] text-muted-foreground">None</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-3">
                       {student.needsPractice && (
                         <div className="flex items-center gap-1 text-destructive">
                           <Flag className="h-3 w-3 fill-current" />
@@ -162,6 +189,13 @@ const StudentTable = ({ activeUnit, activeStatus }: StudentTableProps) => {
                   </tr>
                 );
               })}
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={9} className="px-5 py-8 text-center text-sm text-muted-foreground">
+                    No students match the current filters.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
