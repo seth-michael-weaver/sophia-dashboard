@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Users, AlertTriangle, KeyRound, ShoppingCart, Upload, Sparkles, Target, ArrowRight } from "lucide-react";
 import { summaryStats, students, errorTypes, patientCases } from "@/data/mockData";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -10,8 +11,6 @@ import PurchaseLicensesModal from "./PurchaseLicensesModal";
 interface SummaryCardsProps {
   activeUnit: string;
   onUnitChange: (unit: string) => void;
-  activeStatus?: string;
-  onStatusChange?: (status: string) => void;
 }
 
 const units = ["All", "Anesthesia", "Surgery", "Internal Medicine", "Advanced Practice Providers"];
@@ -31,7 +30,8 @@ const studentErrors: Record<string, string[]> = {
   "12": ["Through-and-Through", "Guidewire Misplacement"],
 };
 
-const SummaryCards = ({ activeUnit, onUnitChange, activeStatus, onStatusChange }: SummaryCardsProps) => {
+const SummaryCards = ({ activeUnit, onUnitChange }: SummaryCardsProps) => {
+  const navigate = useNavigate();
   const [batchOpen, setBatchOpen] = useState(false);
   const [purchaseOpen, setPurchaseOpen] = useState(false);
   const { licensesUsed, licensesTotal } = summaryStats;
@@ -52,7 +52,6 @@ const SummaryCards = ({ activeUnit, onUnitChange, activeStatus, onStatusChange }
 
   const walkthroughDone = unitStudents.filter((s) => s.walkthroughComplete === 100).length;
   const verificationDone = unitStudents.filter((s) => s.verificationStatus === "Verified").length;
-  // Not Started = haven't started walkthrough at all (0%)
   const notStarted = unitStudents.filter((s) => s.walkthroughComplete === 0).length;
 
   const progressData = [
@@ -69,27 +68,14 @@ const SummaryCards = ({ activeUnit, onUnitChange, activeStatus, onStatusChange }
     return categoryStudents.filter((s) => s.daysRemaining <= 3);
   };
 
-  const handleStatusClick = (name: string) => {
-    if (onStatusChange) onStatusChange(activeStatus === name ? "" : name);
-  };
+  // Unit-filtered error counts
+  const unitErrorCounts = unitStudents.reduce<Record<string, number>>((acc, s) => {
+    (studentErrors[s.id] || []).forEach((err) => { acc[err] = (acc[err] || 0) + 1; });
+    return acc;
+  }, {});
+  const totalUnitErrors = Object.values(unitErrorCounts).reduce((a, b) => a + b, 0);
+  const topErrors = Object.entries(unitErrorCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
 
-  const handleOverdueClick = (e: React.MouseEvent, name: string) => {
-    e.stopPropagation();
-    if (onStatusChange) {
-      const overdueFilter = `${name}:overdue`;
-      onStatusChange(activeStatus === overdueFilter ? "" : overdueFilter);
-    }
-  };
-
-  // Top errors for unit
-  const topErrors = Object.entries(
-    unitStudents.reduce<Record<string, number>>((acc, s) => {
-      (studentErrors[s.id] || []).forEach((err) => { acc[err] = (acc[err] || 0) + 1; });
-      return acc;
-    }, {})
-  ).sort((a, b) => b[1] - a[1]).slice(0, 3);
-
-  // Case summary
   const hardCases = patientCases.filter((c) => c.difficulty === "Hard").length;
   const avgPassRate = Math.round(patientCases.reduce((s, c) => s + (100 - c.errorRate), 0) / patientCases.length);
 
@@ -136,27 +122,16 @@ const SummaryCards = ({ activeUnit, onUnitChange, activeStatus, onStatusChange }
             </div>
           </div>
 
-          {/* Training Progress */}
-          <div className="border-t pt-3 mb-3" onClick={(e) => e.preventDefault()}>
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Training Progress</p>
-              {activeStatus && onStatusChange && (
-                <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onStatusChange(""); }} className="text-[10px] text-destructive hover:underline font-medium">Clear</button>
-              )}
-            </div>
+          {/* Training Progress - display only, clicking navigates */}
+          <div className="border-t pt-3 mb-3">
+            <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground mb-2">Training Progress</p>
             <div className="space-y-2">
               {progressData.map((item, idx) => {
                 const cat = progressCategories[idx];
                 const overdueStudents = getOverdueStudents(item.name);
                 const overdueCount = overdueStudents.length;
-                const isActive = activeStatus === item.name || activeStatus === `${item.name}:overdue`;
-                const isDimmed = activeStatus && !isActive;
                 return (
-                  <div
-                    key={item.name}
-                    className={`cursor-pointer transition-opacity rounded-md px-1.5 py-1 -mx-1.5 hover:bg-muted/50 ${isDimmed ? "opacity-30" : ""}`}
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleStatusClick(item.name); }}
-                  >
+                  <div key={item.name} className="rounded-md px-1.5 py-1 -mx-1.5">
                     <div className="flex items-center justify-between mb-0.5">
                       <span className="text-[10px] font-medium text-foreground">{item.name}</span>
                       <span className="text-[10px] font-bold text-foreground">{item.value}% ({item.count})</span>
@@ -170,9 +145,7 @@ const SummaryCards = ({ activeUnit, onUnitChange, activeStatus, onStatusChange }
                           <PopoverTrigger asChild>
                             <button
                               onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                              className={`flex items-center gap-0.5 shrink-0 rounded px-1 py-0.5 text-[9px] font-bold transition-all ${
-                                activeStatus === `${item.name}:overdue` ? "bg-destructive text-white ring-2 ring-destructive/30" : "bg-destructive/10 text-destructive hover:bg-destructive/20"
-                              }`}
+                              className="flex items-center gap-0.5 shrink-0 rounded px-1 py-0.5 text-[9px] font-bold bg-destructive/10 text-destructive hover:bg-destructive/20 transition-all"
                             >
                               {overdueCount} ⚠
                             </button>
@@ -187,7 +160,16 @@ const SummaryCards = ({ activeUnit, onUnitChange, activeStatus, onStatusChange }
                                 </div>
                               ))}
                             </div>
-                            <button onClick={(e) => handleOverdueClick(e, item.name)} className="text-[11px] font-medium text-primary hover:underline">Filter table to these students →</button>
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                navigate("/students", { state: { statusFilter: "Overdue" } });
+                              }}
+                              className="text-[11px] font-medium text-primary hover:underline"
+                            >
+                              View these students →
+                            </button>
                           </PopoverContent>
                         </Popover>
                       )}
@@ -225,7 +207,7 @@ const SummaryCards = ({ activeUnit, onUnitChange, activeStatus, onStatusChange }
             </div>
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Errors & Cases</p>
-              <p className="text-3xl font-bold leading-tight text-foreground">{patientCases.length} <span className="text-lg text-muted-foreground font-normal">cases</span></p>
+              <p className="text-3xl font-bold leading-tight text-foreground">{totalUnitErrors} <span className="text-lg text-muted-foreground font-normal">errors</span></p>
             </div>
           </div>
 
@@ -238,27 +220,26 @@ const SummaryCards = ({ activeUnit, onUnitChange, activeStatus, onStatusChange }
               <span className="text-muted-foreground">Hard cases</span>
               <span className="font-semibold text-destructive">{hardCases}</span>
             </div>
+            <div className="flex justify-between text-xs">
+              <span className="text-muted-foreground">Total cases</span>
+              <span className="font-semibold text-foreground">{patientCases.length}</span>
+            </div>
           </div>
 
-          {/* Top errors */}
           {topErrors.length > 0 && (
             <div className="border-t pt-3 mb-3">
               <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground mb-2">Top Errors ({activeUnit})</p>
               <div className="space-y-1.5">
-                {topErrors.map(([name, count]) => {
-                  const errType = errorTypes.find((e) => e.name === name);
-                  return (
-                    <div key={name} className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground truncate mr-2">{name}</span>
-                      <span className={`font-semibold ${errType?.severity === "critical" ? "text-destructive" : "text-warning"}`}>{count}</span>
-                    </div>
-                  );
-                })}
+                {topErrors.map(([name, count]) => (
+                  <div key={name} className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground truncate mr-2">{name}</span>
+                    <span className="font-semibold text-destructive">{count}</span>
+                  </div>
+                ))}
               </div>
             </div>
           )}
 
-          {/* Hardest cases preview */}
           <div className="border-t pt-3">
             <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground mb-2">Hardest Cases</p>
             <div className="space-y-1.5">
@@ -276,7 +257,7 @@ const SummaryCards = ({ activeUnit, onUnitChange, activeStatus, onStatusChange }
           </span>
         </Link>
 
-        {/* Card 3: Licenses & Practice */}
+        {/* Card 3: Licenses & Access */}
         <Link to="/licenses" className="block rounded-xl bg-card p-5 shadow-card animate-fade-in hover:shadow-lg transition-shadow cursor-pointer">
           <div className="flex items-center gap-3 mb-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-warning/10 text-warning">

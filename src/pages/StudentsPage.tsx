@@ -1,12 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { students, type Student } from "@/data/mockData";
-import { MoreHorizontal, Flag, Search, Send, ArrowUpDown, Plus, Users, CheckCircle, AlertTriangle, BookOpen } from "lucide-react";
+import { MoreHorizontal, Flag, Search, Send, ArrowUpDown, Plus, Users, CheckCircle, AlertTriangle, BookOpen, Clock, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Progress } from "@/components/ui/progress";
 import StudentDetailModal from "@/components/dashboard/StudentDetailModal";
 
 const units = ["All", "Anesthesia", "Surgery", "Internal Medicine", "Advanced Practice Providers"];
@@ -39,6 +41,9 @@ const getVerificationBadge = (status: Student["verificationStatus"]) => {
 };
 
 const StudentsPage = () => {
+  const location = useLocation();
+  const navState = location.state as { statusFilter?: string } | null;
+
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [searchName, setSearchName] = useState("");
   const [filterUnit, setFilterUnit] = useState("All");
@@ -54,31 +59,35 @@ const StudentsPage = () => {
   const [messageSent, setMessageSent] = useState(false);
   const [addModuleStudent, setAddModuleStudent] = useState<Student | null>(null);
 
+  // Apply navigation state filters
+  useEffect(() => {
+    if (navState?.statusFilter) {
+      if (navState.statusFilter === "Overdue") setFilterDeadline("Overdue");
+      else if (navState.statusFilter === "Not Started") setFilterWalkthrough("Not Started");
+      else if (navState.statusFilter === "Needs Practice") setFilterStatus("Needs Practice");
+    }
+  }, [navState]);
+
   const handleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(sortDir === "asc" ? "desc" : "asc");
     else { setSortKey(key); setSortDir("asc"); }
   };
 
   let filtered = [...students];
-
-  if (searchName) {
-    const q = searchName.toLowerCase();
-    filtered = filtered.filter((s) => s.name.toLowerCase().includes(q));
-  }
+  if (searchName) filtered = filtered.filter((s) => s.name.toLowerCase().includes(searchName.toLowerCase()));
   if (filterUnit !== "All") filtered = filtered.filter((s) => s.unit === filterUnit);
   if (filterWalkthrough === "Complete") filtered = filtered.filter((s) => s.walkthroughComplete === 100);
   else if (filterWalkthrough === "In Progress") filtered = filtered.filter((s) => s.walkthroughComplete > 0 && s.walkthroughComplete < 100);
   else if (filterWalkthrough === "Not Started") filtered = filtered.filter((s) => s.walkthroughComplete === 0);
   if (filterVerification !== "All") filtered = filtered.filter((s) => s.verificationStatus === filterVerification);
   if (filterDeadline === "Overdue") filtered = filtered.filter((s) => s.daysRemaining < 0);
-  else if (filterDeadline === "Due Soon") filtered = filtered.filter((s) => s.daysRemaining >= 0 && s.daysRemaining <= 3);
-  else if (filterDeadline === "On Track") filtered = filtered.filter((s) => s.daysRemaining > 3);
+  else if (filterDeadline === "Due Soon") filtered = filtered.filter((s) => s.daysRemaining >= 0 && s.daysRemaining <= 7);
+  else if (filterDeadline === "On Track") filtered = filtered.filter((s) => s.daysRemaining > 7);
   if (filterErrors === "Has Errors") filtered = filtered.filter((s) => (studentErrors[s.id]?.length || 0) > 0);
   else if (filterErrors === "No Errors") filtered = filtered.filter((s) => !studentErrors[s.id]?.length);
   if (filterStatus === "Needs Practice") filtered = filtered.filter((s) => s.needsPractice);
   else if (filterStatus === "On Track") filtered = filtered.filter((s) => !s.needsPractice);
 
-  // Sort
   filtered.sort((a, b) => {
     let cmp = 0;
     switch (sortKey) {
@@ -95,21 +104,36 @@ const StudentsPage = () => {
 
   // Summary stats
   const totalCount = students.length;
+  const overdueCount = students.filter((s) => s.daysRemaining < 0).length;
+  const dueSoonCount = students.filter((s) => s.daysRemaining >= 0 && s.daysRemaining <= 7).length;
+  const notStartedCount = students.filter((s) => s.walkthroughComplete === 0).length;
   const completedCount = students.filter((s) => s.walkthroughComplete === 100 && s.verificationStatus === "Verified").length;
   const needsPracticeCount = students.filter((s) => s.needsPractice).length;
   const avgProgress = Math.round(students.reduce((s, st) => s + st.walkthroughComplete, 0) / students.length);
+  const avgScore = Math.round(students.reduce((s, st) => s + st.latestScore, 0) / students.length);
 
   const handleSendMessage = () => {
     setMessageSent(true);
-    setTimeout(() => {
-      setMessageSent(false);
-      setMessageText("");
-      setMessageStudent(null);
-    }, 2000);
+    setTimeout(() => { setMessageSent(false); setMessageText(""); setMessageStudent(null); }, 2000);
   };
 
-  const handleAddModule = (type: string) => {
-    setAddModuleStudent(null);
+  const handleAddModule = (_type: string) => { setAddModuleStudent(null); };
+
+  const handleStatClick = (filter: string) => {
+    // Reset all filters first
+    setFilterDeadline("All");
+    setFilterWalkthrough("All");
+    setFilterStatus("All");
+    setFilterErrors("All");
+
+    if (filter === "Overdue") setFilterDeadline("Overdue");
+    else if (filter === "Due Soon") setFilterDeadline("Due Soon");
+    else if (filter === "Not Started") setFilterWalkthrough("Not Started");
+    else if (filter === "Needs Practice") setFilterStatus("Needs Practice");
+    else if (filter === "Completed") {
+      setFilterWalkthrough("Complete");
+      setFilterVerification("Verified");
+    }
   };
 
   const SortHeader = ({ label, field }: { label: string; field: SortKey }) => (
@@ -131,26 +155,57 @@ const StudentsPage = () => {
         <p className="text-sm text-muted-foreground">Full student list with training analytics</p>
       </div>
 
-      {/* Summary stats */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="rounded-xl bg-card p-4 shadow-card text-center">
-          <Users className="h-4 w-4 text-primary mx-auto mb-1" />
-          <p className="text-2xl font-bold text-foreground">{totalCount}</p>
-          <p className="text-[10px] text-muted-foreground">Total Students</p>
+      {/* Overall Progress */}
+      <div className="rounded-xl bg-card p-5 shadow-card">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-foreground">Overall Cohort Progress</h3>
+          <span className="text-xs text-muted-foreground">{totalCount} students enrolled</span>
         </div>
-        <div className="rounded-xl bg-card p-4 shadow-card text-center">
-          <CheckCircle className="h-4 w-4 text-success mx-auto mb-1" />
-          <p className="text-2xl font-bold text-success">{completedCount}</p>
-          <p className="text-[10px] text-muted-foreground">Completed</p>
+        <div className="flex items-center gap-4 mb-2">
+          <div className="flex-1">
+            <div className="flex items-center justify-between text-xs mb-1">
+              <span className="text-muted-foreground">Average Walkthrough Progress</span>
+              <span className="font-bold text-foreground">{avgProgress}%</span>
+            </div>
+            <Progress value={avgProgress} className="h-3" />
+          </div>
+          <div className="text-center px-4 border-l">
+            <p className="text-2xl font-bold text-foreground">{avgScore}</p>
+            <p className="text-[10px] text-muted-foreground">Avg Score</p>
+          </div>
         </div>
-        <div className="rounded-xl bg-card p-4 shadow-card text-center">
+      </div>
+
+      {/* Clickable Summary Stats */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <button onClick={() => handleStatClick("Overdue")} className={`rounded-xl bg-card p-3 shadow-card text-center transition-all hover:shadow-lg ${filterDeadline === "Overdue" ? "ring-2 ring-destructive" : ""}`}>
           <AlertTriangle className="h-4 w-4 text-destructive mx-auto mb-1" />
-          <p className="text-2xl font-bold text-destructive">{needsPracticeCount}</p>
+          <p className="text-xl font-bold text-destructive">{overdueCount}</p>
+          <p className="text-[10px] text-muted-foreground">Overdue</p>
+        </button>
+        <button onClick={() => handleStatClick("Due Soon")} className={`rounded-xl bg-card p-3 shadow-card text-center transition-all hover:shadow-lg ${filterDeadline === "Due Soon" ? "ring-2 ring-warning" : ""}`}>
+          <Clock className="h-4 w-4 text-warning mx-auto mb-1" />
+          <p className="text-xl font-bold text-warning">{dueSoonCount}</p>
+          <p className="text-[10px] text-muted-foreground">Due Soon</p>
+        </button>
+        <button onClick={() => handleStatClick("Not Started")} className={`rounded-xl bg-card p-3 shadow-card text-center transition-all hover:shadow-lg ${filterWalkthrough === "Not Started" ? "ring-2 ring-muted-foreground" : ""}`}>
+          <BookOpen className="h-4 w-4 text-muted-foreground mx-auto mb-1" />
+          <p className="text-xl font-bold text-foreground">{notStartedCount}</p>
+          <p className="text-[10px] text-muted-foreground">Not Started</p>
+        </button>
+        <button onClick={() => handleStatClick("Needs Practice")} className={`rounded-xl bg-card p-3 shadow-card text-center transition-all hover:shadow-lg ${filterStatus === "Needs Practice" ? "ring-2 ring-destructive" : ""}`}>
+          <Flag className="h-4 w-4 text-destructive mx-auto mb-1" />
+          <p className="text-xl font-bold text-destructive">{needsPracticeCount}</p>
           <p className="text-[10px] text-muted-foreground">Need Practice</p>
-        </div>
-        <div className="rounded-xl bg-card p-4 shadow-card text-center">
-          <BookOpen className="h-4 w-4 text-primary mx-auto mb-1" />
-          <p className="text-2xl font-bold text-foreground">{avgProgress}%</p>
+        </button>
+        <button onClick={() => handleStatClick("Completed")} className={`rounded-xl bg-card p-3 shadow-card text-center transition-all hover:shadow-lg ${filterWalkthrough === "Complete" && filterVerification === "Verified" ? "ring-2 ring-success" : ""}`}>
+          <CheckCircle className="h-4 w-4 text-success mx-auto mb-1" />
+          <p className="text-xl font-bold text-success">{completedCount}</p>
+          <p className="text-[10px] text-muted-foreground">Completed</p>
+        </button>
+        <div className="rounded-xl bg-card p-3 shadow-card text-center">
+          <TrendingUp className="h-4 w-4 text-primary mx-auto mb-1" />
+          <p className="text-xl font-bold text-primary">{avgProgress}%</p>
           <p className="text-[10px] text-muted-foreground">Avg Progress</p>
         </div>
       </div>
@@ -160,7 +215,7 @@ const StudentsPage = () => {
         <div className="flex items-center gap-2 flex-wrap">
           <div className="relative flex-1 min-w-[200px] max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search by last name…" value={searchName} onChange={(e) => setSearchName(e.target.value)} className="pl-9 h-9 text-sm" />
+            <Input placeholder="Search by name…" value={searchName} onChange={(e) => setSearchName(e.target.value)} className="pl-9 h-9 text-sm" />
           </div>
           <Select value={filterUnit} onValueChange={setFilterUnit}>
             <SelectTrigger className="w-[160px] h-9 text-xs"><SelectValue placeholder="Unit" /></SelectTrigger>
@@ -184,23 +239,6 @@ const StudentsPage = () => {
               <SelectItem value="Not Started">Not Started</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={filterVerification} onValueChange={setFilterVerification}>
-            <SelectTrigger className="w-[150px] h-9 text-xs"><SelectValue placeholder="Verification" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="All">All Verification</SelectItem>
-              <SelectItem value="Verified">Verified</SelectItem>
-              <SelectItem value="In Progress">In Progress</SelectItem>
-              <SelectItem value="Not Started">Not Started</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={filterErrors} onValueChange={setFilterErrors}>
-            <SelectTrigger className="w-[130px] h-9 text-xs"><SelectValue placeholder="Errors" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="All">All Errors</SelectItem>
-              <SelectItem value="Has Errors">Has Errors</SelectItem>
-              <SelectItem value="No Errors">No Errors</SelectItem>
-            </SelectContent>
-          </Select>
           <Select value={filterStatus} onValueChange={setFilterStatus}>
             <SelectTrigger className="w-[140px] h-9 text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
@@ -210,7 +248,14 @@ const StudentsPage = () => {
             </SelectContent>
           </Select>
         </div>
-        <p className="text-[11px] text-muted-foreground">{filtered.length} students</p>
+        <div className="flex items-center justify-between">
+          <p className="text-[11px] text-muted-foreground">{filtered.length} students</p>
+          {(filterDeadline !== "All" || filterWalkthrough !== "All" || filterStatus !== "All" || filterUnit !== "All") && (
+            <button onClick={() => { setFilterDeadline("All"); setFilterWalkthrough("All"); setFilterStatus("All"); setFilterUnit("All"); setFilterErrors("All"); setFilterVerification("All"); }} className="text-[10px] text-destructive hover:underline">
+              Clear all filters
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Table */}
@@ -282,13 +327,7 @@ const StudentsPage = () => {
                     </td>
                     <td className="px-3 py-3 text-right">
                       <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-primary hover:text-primary"
-                          title="Send reminder"
-                          onClick={() => setMessageStudent(student)}
-                        >
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:text-primary" title="Send reminder" onClick={() => setMessageStudent(student)}>
                           <Send className="h-3.5 w-3.5" />
                         </Button>
                         <DropdownMenu>
@@ -312,9 +351,7 @@ const StudentsPage = () => {
                 );
               })}
               {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="px-5 py-8 text-center text-sm text-muted-foreground">No students match the current filters.</td>
-                </tr>
+                <tr><td colSpan={8} className="px-5 py-8 text-center text-sm text-muted-foreground">No students match the current filters.</td></tr>
               )}
             </tbody>
           </table>
@@ -352,8 +389,7 @@ const StudentsPage = () => {
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Send className="h-4 w-4 text-primary" />
-              Send Reminder
+              <Send className="h-4 w-4 text-primary" /> Send Reminder
             </DialogTitle>
             <DialogDescription>Send a message to {messageStudent?.name}</DialogDescription>
           </DialogHeader>
@@ -365,8 +401,8 @@ const StudentsPage = () => {
           ) : (
             <div className="space-y-3 mt-2">
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="text-[10px] flex-1" onClick={() => { setMessageText("Please complete your training course before the deadline."); }}>📋 Complete Course</Button>
-                <Button variant="outline" size="sm" className="text-[10px] flex-1" onClick={() => { setMessageText("You have been assigned additional practice. Please review."); }}>🔄 Additional Practice</Button>
+                <Button variant="outline" size="sm" className="text-[10px] flex-1" onClick={() => setMessageText("Please complete your training course before the deadline.")}>📋 Complete Course</Button>
+                <Button variant="outline" size="sm" className="text-[10px] flex-1" onClick={() => setMessageText("You have been assigned additional practice. Please review.")}>🔄 Additional Practice</Button>
               </div>
               <Textarea placeholder="Custom message…" value={messageText} onChange={(e) => setMessageText(e.target.value)} className="text-xs min-h-[80px]" />
               <Button className="w-full" size="sm" onClick={handleSendMessage} disabled={!messageText.trim()}>
@@ -382,8 +418,7 @@ const StudentsPage = () => {
         <DialogContent className="sm:max-w-[380px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Plus className="h-4 w-4 text-primary" />
-              Add Module for {addModuleStudent?.name}
+              <Plus className="h-4 w-4 text-primary" /> Add Module for {addModuleStudent?.name}
             </DialogTitle>
             <DialogDescription>Assign additional training if there was an error on upload.</DialogDescription>
           </DialogHeader>
@@ -393,12 +428,7 @@ const StudentsPage = () => {
               { id: "patient-cases", label: "Patient Cases", icon: "🏥" },
               { id: "verification", label: "Verification of Proficiency", icon: "✅" },
             ].map((mod) => (
-              <Button
-                key={mod.id}
-                variant="outline"
-                className="w-full justify-start gap-2 text-sm"
-                onClick={() => handleAddModule(mod.id)}
-              >
+              <Button key={mod.id} variant="outline" className="w-full justify-start gap-2 text-sm" onClick={() => handleAddModule(mod.id)}>
                 <span>{mod.icon}</span> {mod.label}
               </Button>
             ))}

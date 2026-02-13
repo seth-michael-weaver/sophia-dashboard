@@ -4,8 +4,8 @@ import { AlertTriangle } from "lucide-react";
 
 const severityColors: Record<string, string> = {
   critical: "hsl(0, 65%, 48%)",
-  moderate: "hsl(217, 71%, 53%)",
-  minor: "hsl(214, 32%, 78%)",
+  moderate: "hsl(0, 65%, 48%)",
+  minor: "hsl(0, 65%, 48%)",
 };
 
 interface ErrorAnalyticsProps {

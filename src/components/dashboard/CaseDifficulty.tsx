@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { patientCases, type PatientCase } from "@/data/mockData";
+import { patientCases } from "@/data/mockData";
 import { ScatterChart, Scatter, XAxis, YAxis, ZAxis, ResponsiveContainer, Tooltip, CartesianGrid } from "recharts";
 import { Target } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -28,9 +28,11 @@ const enrichedCases = patientCases.map((c) => ({
 interface CaseDifficultyProps {
   onCaseClick?: (difficulty: string) => void;
   activeDifficulty?: string;
+  onSingleCaseClick?: (caseId: number) => void;
+  activeCaseId?: number | null;
 }
 
-const CaseDifficulty = ({ onCaseClick, activeDifficulty }: CaseDifficultyProps) => {
+const CaseDifficulty = ({ onCaseClick, activeDifficulty, onSingleCaseClick, activeCaseId }: CaseDifficultyProps) => {
   const [xAxis, setXAxis] = useState<AxisKey>("errorRate");
   const [yAxis, setYAxis] = useState<AxisKey>("avgScore");
 
@@ -38,8 +40,8 @@ const CaseDifficulty = ({ onCaseClick, activeDifficulty }: CaseDifficultyProps) 
   const yLabel = axisOptions.find((o) => o.value === yAxis)?.label ?? "";
 
   const handleScatterClick = (data: any) => {
-    if (onCaseClick && data?.difficulty) {
-      onCaseClick(data.difficulty);
+    if (onSingleCaseClick && data?.id) {
+      onSingleCaseClick(data.id);
     }
   };
 
@@ -49,7 +51,7 @@ const CaseDifficulty = ({ onCaseClick, activeDifficulty }: CaseDifficultyProps) 
         <Target className="h-4 w-4 text-primary" />
         <h3 className="text-sm font-semibold text-foreground">Case Difficulty</h3>
       </div>
-      <p className="mb-3 text-xs text-muted-foreground">Click a dot to filter cases by difficulty below</p>
+      <p className="mb-3 text-xs text-muted-foreground">Click a dot to filter that case below. Use legend to filter by difficulty.</p>
 
       {/* Legend */}
       <div className="flex items-center gap-3 mb-3">
@@ -65,8 +67,8 @@ const CaseDifficulty = ({ onCaseClick, activeDifficulty }: CaseDifficultyProps) 
             <span className="text-[10px] text-muted-foreground">{name}</span>
           </button>
         ))}
-        {activeDifficulty && (
-          <button onClick={() => onCaseClick?.("")} className="text-[10px] text-destructive hover:underline ml-auto">Clear</button>
+        {(activeDifficulty || activeCaseId) && (
+          <button onClick={() => { onCaseClick?.(""); onSingleCaseClick?.(0); }} className="text-[10px] text-destructive hover:underline ml-auto">Clear</button>
         )}
       </div>
 
@@ -118,17 +120,50 @@ const CaseDifficulty = ({ onCaseClick, activeDifficulty }: CaseDifficultyProps) 
                 key={diff}
                 data={enrichedCases.filter((c) => c.difficulty === diff)}
                 fill={difficultyColors[diff]}
-                fillOpacity={activeDifficulty && activeDifficulty !== diff ? 0.15 : 0.7}
+                fillOpacity={
+                  activeCaseId
+                    ? 0.15
+                    : activeDifficulty && activeDifficulty !== diff
+                    ? 0.15
+                    : 0.7
+                }
                 stroke={difficultyColors[diff]}
                 strokeWidth={1}
                 name={diff}
                 className="cursor-pointer"
                 onClick={handleScatterClick}
+                shape={(props: any) => {
+                  const isActive = activeCaseId === props.payload?.id;
+                  return (
+                    <circle
+                      cx={props.cx}
+                      cy={props.cy}
+                      r={isActive ? 8 : props.r || 5}
+                      fill={difficultyColors[props.payload?.difficulty]}
+                      fillOpacity={
+                        activeCaseId
+                          ? isActive ? 1 : 0.15
+                          : activeDifficulty && activeDifficulty !== diff
+                          ? 0.15
+                          : 0.7
+                      }
+                      stroke={isActive ? "hsl(222, 47%, 11%)" : difficultyColors[props.payload?.difficulty]}
+                      strokeWidth={isActive ? 2 : 1}
+                      className="cursor-pointer"
+                    />
+                  );
+                }}
               />
             ))}
           </ScatterChart>
         </ResponsiveContainer>
       </div>
+
+      {activeCaseId ? (
+        <p className="mt-2 text-[10px] text-primary font-medium">
+          Showing: {patientCases.find(c => c.id === activeCaseId)?.caseName}
+        </p>
+      ) : null}
     </div>
   );
 };
