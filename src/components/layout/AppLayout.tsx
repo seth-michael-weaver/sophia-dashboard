@@ -2,12 +2,13 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { Search, Bell, User, Lock, Mail, FileText, CheckCircle, Save } from "lucide-react";
+import { Search, Bell, User, Lock, Mail, FileText, CheckCircle, Save, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { students } from "@/data/mockData";
+import { useAuth } from "@/contexts/AuthContext";
 
 const notificationItems = () => {
   const needsAttention = students.filter((s) => s.needsPractice || s.daysRemaining <= 3);
@@ -28,12 +29,13 @@ interface AppLayoutProps {
 
 const AppLayout = ({ children }: AppLayoutProps) => {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<"profile" | "password" | "notifications" | null>(null);
 
-  const [name, setName] = useState("Dr. Sarah Miller");
-  const [email, setEmail] = useState("s.miller@mercygeneral.edu");
+  const [name, setName] = useState(user ? `${user.first_name} ${user.last_name}`.trim() || user.username : "");
+  const [email, setEmail] = useState(user?.email || "");
   const [affiliation, setAffiliation] = useState("Mercy General Hospital");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -132,6 +134,9 @@ const AppLayout = ({ children }: AppLayoutProps) => {
                           </Button>
                           <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs" onClick={() => setSettingsTab("notifications")}>
                             <Mail className="h-3.5 w-3.5" /> Email & Report Settings
+                          </Button>
+                          <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs text-destructive hover:text-destructive" onClick={() => { logout(); setProfileOpen(false); }}>
+                            <LogOut className="h-3.5 w-3.5" /> Sign Out
                           </Button>
                         </div>
                       </div>

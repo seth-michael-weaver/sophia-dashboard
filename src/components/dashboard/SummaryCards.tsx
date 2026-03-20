@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Users, AlertTriangle, KeyRound, ShoppingCart, Upload, Sparkles, Target, ArrowRight } from "lucide-react";
-import { summaryStats, students, errorTypes, patientCases } from "@/data/mockData";
+import { summaryStats as mockSummaryStats, students as mockStudents, errorTypes as mockErrorTypes, patientCases as mockPatientCases } from "@/data/mockData";
+import { useTrainees } from "@/hooks/useTrainees";
+import { usePatientCases } from "@/hooks/useCases";
+import { useErrorTypes, useStudentErrorMap } from "@/hooks/useErrors";
+import { useLicenseStats } from "@/hooks/useLicenses";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -21,7 +25,7 @@ const progressCategories = [
   { name: "Not Started", color: "hsl(214, 32%, 78%)" },
 ];
 
-const studentErrors: Record<string, string[]> = {
+const mockStudentErrors: Record<string, string[]> = {
   "2": ["Arterial Puncture", "Through-and-Through", "Excessive Cannulation Attempts"],
   "3": ["Guidewire Misplacement", "Prolonged Arrhythmia"],
   "6": ["Arterial Puncture", "Failed Cannulation Attempts", "Through-and-Through"],
@@ -34,8 +38,23 @@ const SummaryCards = ({ activeUnit, onUnitChange }: SummaryCardsProps) => {
   const navigate = useNavigate();
   const [batchOpen, setBatchOpen] = useState(false);
   const [purchaseOpen, setPurchaseOpen] = useState(false);
+
+  const { data: apiStudents } = useTrainees();
+  const { data: apiCases } = usePatientCases();
+  const { data: apiErrorTypes } = useErrorTypes();
+  const { data: apiStudentErrorMap } = useStudentErrorMap();
+  const { data: apiLicenseStats } = useLicenseStats();
+
+  const students = apiStudents ?? mockStudents;
+  const patientCases = apiCases ?? mockPatientCases;
+  const errorTypes = apiErrorTypes ?? mockErrorTypes;
+  const summaryStats = apiLicenseStats
+    ? { licensesUsed: apiLicenseStats.used, licensesTotal: apiLicenseStats.total }
+    : mockSummaryStats;
+
+  const studentErrors = apiStudentErrorMap ?? mockStudentErrors;
   const { licensesUsed, licensesTotal } = summaryStats;
-  const usagePercent = Math.round((licensesUsed / licensesTotal) * 100);
+  const usagePercent = licensesTotal > 0 ? Math.round((licensesUsed / licensesTotal) * 100) : 0;
 
   const unitStudents = activeUnit === "All" ? students : students.filter((s) => s.unit === activeUnit);
   const totalStudents = unitStudents.length;

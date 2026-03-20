@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { students, summaryStats } from "@/data/mockData";
+import { students as mockStudents, summaryStats as mockSummaryStats } from "@/data/mockData";
+import { useTrainees, useRegisterTrainee } from "@/hooks/useTrainees";
+import { useLicenseStats } from "@/hooks/useLicenses";
 import { KeyRound, ShoppingCart, Upload, Plus, Trash2, Shield, UserCog, ArrowUpDown, UserPlus, Settings2, Users, Edit2, Save, CheckCircle, X, Mail, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,6 +59,13 @@ type LicenseSortKey = "name" | "unit" | "purchased" | "expires" | "timeLeft" | "
 type SortDir = "asc" | "desc";
 
 const LicensesAccessPage = () => {
+  const { data: apiStudents } = useTrainees();
+  const { data: apiLicenseStats } = useLicenseStats();
+  const students = apiStudents ?? mockStudents;
+  const summaryStats = apiLicenseStats
+    ? { licensesUsed: apiLicenseStats.used, licensesTotal: apiLicenseStats.total }
+    : mockSummaryStats;
+
   const [purchaseOpen, setPurchaseOpen] = useState(false);
   const [addStudentOpen, setAddStudentOpen] = useState(false);
   const [manageDepts, setManageDepts] = useState(false);
@@ -142,9 +151,13 @@ const LicensesAccessPage = () => {
     }
   };
 
+  const registerTrainee = useRegisterTrainee();
+
   const handleAddIndividualStudent = () => {
-    setAddStudentOpen(false);
-    setIndFirstName(""); setIndLastName(""); setIndEmail(""); setIndUnit(""); setIndDueDate(""); setIndModules([]);
+    registerTrainee.mutate(
+      { first_name: indFirstName, last_name: indLastName, email: indEmail, unit: indUnit, deadline: indDueDate || undefined },
+      { onSuccess: () => { setAddStudentOpen(false); setIndFirstName(""); setIndLastName(""); setIndEmail(""); setIndUnit(""); setIndDueDate(""); setIndModules([]); } }
+    );
   };
 
   const openStudentEdit = (student: typeof students[0]) => {

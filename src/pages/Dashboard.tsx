@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, UserPlus } from "lucide-react";
+import { useRegisterTrainee } from "@/hooks/useTrainees";
+import { useActivityFeed } from "@/hooks/useDashboard";
 import WelcomeBanner from "@/components/dashboard/WelcomeBanner";
 import SummaryCards from "@/components/dashboard/SummaryCards";
 import StudentTable from "@/components/dashboard/StudentTable";
@@ -22,9 +24,14 @@ const Dashboard = () => {
   const [dueDate, setDueDate] = useState("");
   const [modules, setModules] = useState<string[]>([]);
 
+  const registerTrainee = useRegisterTrainee();
+  const { data: activities } = useActivityFeed(4);
+
   const handleAddStudent = () => {
-    setAddStudentOpen(false);
-    setFirstName(""); setLastName(""); setEmail(""); setUnit(""); setDueDate(""); setModules([]);
+    registerTrainee.mutate(
+      { first_name: firstName, last_name: lastName, email, unit, deadline: dueDate || undefined },
+      { onSuccess: () => { setAddStudentOpen(false); setFirstName(""); setLastName(""); setEmail(""); setUnit(""); setDueDate(""); setModules([]); } }
+    );
   };
 
   return (
@@ -53,17 +60,12 @@ const Dashboard = () => {
         <h3 className="text-sm font-semibold text-foreground mb-1">Recent Activity</h3>
         <p className="text-xs text-muted-foreground mb-4">Latest training events</p>
         <div className="space-y-3">
-          {[
-            { text: "James Rodriguez flagged: 3+ arterial puncture errors", time: "5 hrs ago", type: "error" },
-            { text: "Tom Bradley deadline overdue — Module 1 incomplete", time: "1 day ago", type: "error" },
-            { text: "Emily Thompson started Module 2: Ultrasound Guidance", time: "1 day ago", type: "info" },
-            { text: "Sarah Chen completed Verification of Proficiency", time: "2 hrs ago", type: "success" },
-          ].map((item, i) => (
+          {(activities || []).map((item, i) => (
             <div key={i} className="flex items-start gap-3 group cursor-pointer">
               <div className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${item.type === "success" ? "bg-success" : item.type === "error" ? "bg-destructive" : "bg-primary"}`} />
               <div className="min-w-0">
-                <p className="text-xs text-foreground group-hover:text-primary transition-colors">{item.text}</p>
-                <p className="text-[10px] text-muted-foreground">{item.time}</p>
+                <p className="text-xs text-foreground group-hover:text-primary transition-colors">{item.description}</p>
+                <p className="text-[10px] text-muted-foreground">{item.trainee}</p>
               </div>
             </div>
           ))}

@@ -1,5 +1,6 @@
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell, LabelList } from "recharts";
-import { errorTypes } from "@/data/mockData";
+import { errorTypes as mockErrorTypes } from "@/data/mockData";
+import { useErrorTypes } from "@/hooks/useErrors";
 import { AlertTriangle } from "lucide-react";
 
 const severityColors: Record<string, string> = {
@@ -15,6 +16,8 @@ interface ErrorAnalyticsProps {
 }
 
 const ErrorAnalytics = ({ activeErrors = [], onErrorToggle, onClearErrors }: ErrorAnalyticsProps) => {
+  const { data: apiErrorTypes } = useErrorTypes();
+  const errorTypes = apiErrorTypes ?? mockErrorTypes;
   const handleClick = (name: string) => {
     if (onErrorToggle) {
       onErrorToggle(name);

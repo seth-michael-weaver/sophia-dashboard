@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { students, type Student, errorTypes } from "@/data/mockData";
+import { students as mockStudents, type Student, errorTypes } from "@/data/mockData";
+import { useTrainees } from "@/hooks/useTrainees";
+import { useStudentErrorMap } from "@/hooks/useErrors";
 import { MoreHorizontal, Flag, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import StudentDetailModal from "./StudentDetailModal";
@@ -22,8 +24,7 @@ const getVerificationBadge = (status: Student["verificationStatus"]) => {
   }
 };
 
-// Mock mapping of students to errors for filtering
-const studentErrors: Record<string, string[]> = {
+const mockStudentErrors: Record<string, string[]> = {
   "2": ["Arterial Puncture", "Through-and-Through", "Excessive Cannulation Attempts"],
   "3": ["Guidewire Misplacement", "Prolonged Arrhythmia"],
   "6": ["Arterial Puncture", "Failed Cannulation Attempts", "Through-and-Through"],
@@ -43,6 +44,11 @@ interface StudentTableProps {
 }
 
 const StudentTable = ({ activeUnit, activeStatus, activeError, dashboardMode }: StudentTableProps) => {
+  const { data: apiStudents } = useTrainees();
+  const { data: apiStudentErrorMap } = useStudentErrorMap();
+  const students = apiStudents ?? mockStudents;
+  const studentErrors = apiStudentErrorMap ?? mockStudentErrors;
+
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");

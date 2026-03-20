@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { students, type Student } from "@/data/mockData";
+import { students as mockStudents, type Student } from "@/data/mockData";
+import { useTrainees } from "@/hooks/useTrainees";
+import { useInbox, useSendMessage, useMarkRead, useReplyMessage, type InboxMessage } from "@/hooks/useMessages";
 import { Send, CheckCircle, Search, Filter, MessageSquare, Inbox, Mail, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,8 +33,8 @@ const templates = [
   { label: "✅ Verification Reminder", text: "Please complete your Verification of Proficiency assessment by {deadline}. This is required to finish the training program." },
 ];
 
-// Mock received messages
-const receivedMessages = [
+// Mock received messages (fallback)
+const mockReceivedMessages: InboxMessage[] = [
   { id: "1", from: "James Rodriguez", subject: "Re: Complete Course Reminder", body: "Thank you for the reminder. I'll finish Module 3 this week.", time: "2 hrs ago", read: false },
   { id: "2", from: "Emily Thompson", subject: "Question about ultrasound module", body: "Can I have additional time for Module 2? I've been having technical issues with the simulation.", time: "5 hrs ago", read: false },
   { id: "3", from: "Ryan Foster", subject: "Re: Deadline Approaching", body: "I understand. I will complete the remaining modules by the deadline.", time: "1 day ago", read: true },
@@ -40,6 +42,14 @@ const receivedMessages = [
 ];
 
 const InboxPage = () => {
+  const { data: apiStudents } = useTrainees();
+  const { data: apiMessages } = useInbox();
+  const sendMessageMutation = useSendMessage();
+  const markReadMutation = useMarkRead();
+  const replyMutation = useReplyMessage();
+  const students = apiStudents ?? mockStudents;
+  const receivedMessages = apiMessages ?? mockReceivedMessages;
+
   const [tab, setTab] = useState("send");
   const [statusFilter, setStatusFilter] = useState("All");
   const [unitFilter, setUnitFilter] = useState("All");
@@ -91,8 +101,11 @@ const InboxPage = () => {
   };
 
   const handleSend = () => {
-    setSent(true);
-    setTimeout(() => { setSent(false); setMessage(""); setSelected(new Set()); }, 2000);
+    const recipientIds = Array.from(selected).map(Number);
+    sendMessageMutation.mutate(
+      { subject: "Training Message", body: message, recipient_ids: recipientIds },
+      { onSuccess: () => { setSent(true); setTimeout(() => { setSent(false); setMessage(""); setSelected(new Set()); }, 2000); } }
+    );
   };
 
   const filteredInbox = receivedMessages.filter((m) =>
@@ -235,7 +248,7 @@ const InboxPage = () => {
                 {filteredInbox.map((msg) => (
                   <button
                     key={msg.id}
-                    onClick={() => setSelectedMessage(msg)}
+                    onClick={() => { if (!msg.read) markReadMutation.mutate(msg.id); setSelectedMessage(msg); }}
                     className={`w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors ${selectedMessage?.id === msg.id ? "bg-primary/5" : ""} ${!msg.read ? "bg-primary/[0.03]" : ""}`}
                   >
                     <div className="flex items-center justify-between mb-0.5">
@@ -268,7 +281,12 @@ const InboxPage = () => {
                   <p className="text-xs font-semibold text-foreground mb-1.5">Reply</p>
                   <Textarea placeholder="Type your reply…" value={replyText} onChange={(e) => setReplyText(e.target.value)} className="text-sm min-h-[80px]" />
                   <div className="flex justify-end mt-2">
-                    <Button size="sm" disabled={!replyText.trim()} className="gap-1.5">
+                    <Button size="sm" disabled={!replyText.trim()} className="gap-1.5" onClick={() => {
+                      replyMutation.mutate(
+                        { messageId: selectedMessage!.id, body: replyText },
+                        { onSuccess: () => { setReplyText(""); } }
+                      );
+                    }}>
                       <Send className="h-3.5 w-3.5" /> Send Reply
                     </Button>
                   </div>

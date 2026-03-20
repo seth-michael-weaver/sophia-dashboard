@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { patientCases } from "@/data/mockData";
+import { patientCases as mockPatientCases } from "@/data/mockData";
+import { usePatientCases } from "@/hooks/useCases";
 import { ScatterChart, Scatter, XAxis, YAxis, ZAxis, ResponsiveContainer, Tooltip, CartesianGrid } from "recharts";
 import { Target } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -20,10 +21,7 @@ const difficultyColors: Record<string, string> = {
   Hard: "hsl(0, 65%, 48%)",
 };
 
-const enrichedCases = patientCases.map((c) => ({
-  ...c,
-  successRate: 100 - c.errorRate,
-}));
+// Moved inside component to use API data
 
 interface CaseDifficultyProps {
   onCaseClick?: (difficulty: string) => void;
@@ -33,6 +31,10 @@ interface CaseDifficultyProps {
 }
 
 const CaseDifficulty = ({ onCaseClick, activeDifficulty, onSingleCaseClick, activeCaseId }: CaseDifficultyProps) => {
+  const { data: apiCases } = usePatientCases();
+  const patientCases = apiCases ?? mockPatientCases;
+  const enrichedCases = patientCases.map((c) => ({ ...c, successRate: 100 - c.errorRate }));
+
   const [xAxis, setXAxis] = useState<AxisKey>("errorRate");
   const [yAxis, setYAxis] = useState<AxisKey>("avgScore");
 

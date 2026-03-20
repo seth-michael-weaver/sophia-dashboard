@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { students, errorTypes, type Student } from "@/data/mockData";
+import { students as mockStudents, errorTypes as mockErrorTypes, type Student } from "@/data/mockData";
+import { useTrainees } from "@/hooks/useTrainees";
+import { useErrorTypes, useStudentErrorMap } from "@/hooks/useErrors";
+import { useSendMessage } from "@/hooks/useMessages";
 import { MoreHorizontal, Flag, Search, Send, ArrowUpDown, Plus, Users, CheckCircle, AlertTriangle, BookOpen, Clock, TrendingUp, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +17,7 @@ import ErrorAnalytics from "@/components/dashboard/ErrorAnalytics";
 
 const units = ["All", "Anesthesia", "Surgery", "Internal Medicine", "Advanced Practice Providers"];
 
-const studentErrors: Record<string, string[]> = {
+const mockStudentErrors: Record<string, string[]> = {
   "2": ["Arterial Puncture", "Through-and-Through", "Excessive Cannulation Attempts"],
   "3": ["Guidewire Misplacement", "Prolonged Arrhythmia"],
   "6": ["Arterial Puncture", "Failed Cannulation Attempts", "Through-and-Through"],
@@ -44,6 +47,14 @@ const getVerificationBadge = (status: Student["verificationStatus"]) => {
 const StudentsPage = () => {
   const location = useLocation();
   const navState = location.state as { statusFilter?: string } | null;
+
+  // API data with mock fallback
+  const { data: apiStudents } = useTrainees();
+  const { data: apiErrorTypes } = useErrorTypes();
+  const { data: apiStudentErrorMap } = useStudentErrorMap();
+  const students = apiStudents ?? mockStudents;
+  const errorTypes = apiErrorTypes ?? mockErrorTypes;
+  const studentErrors = apiStudentErrorMap ?? mockStudentErrors;
 
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [searchName, setSearchName] = useState("");
@@ -121,9 +132,14 @@ const StudentsPage = () => {
   const avgProgress = Math.round(students.reduce((s, st) => s + st.walkthroughComplete, 0) / students.length);
   const avgScore = Math.round(students.reduce((s, st) => s + st.latestScore, 0) / students.length);
 
+  const sendMessage = useSendMessage();
+
   const handleSendMessage = () => {
-    setMessageSent(true);
-    setTimeout(() => { setMessageSent(false); setMessageText(""); setMessageStudent(null); }, 2000);
+    if (!messageStudent) return;
+    sendMessage.mutate(
+      { subject: "Training Reminder", body: messageText, recipient_ids: [Number(messageStudent.id)] },
+      { onSuccess: () => { setMessageSent(true); setTimeout(() => { setMessageSent(false); setMessageText(""); setMessageStudent(null); }, 2000); } }
+    );
   };
 
   const handleAddModule = (_type: string) => { setAddModuleStudent(null); };
@@ -149,8 +165,20 @@ const StudentsPage = () => {
   };
 
   const handleSendBulkEmail = () => {
-    setBulkEmailSent(true);
-    setTimeout(() => { setBulkEmailSent(false); setBulkEmailOpen(false); setBulkEmailText(""); }, 2000);
+    const recipientIds = filtered
+      .filter(s => {
+        if (bulkEmailCategory === "Overdue") return s.daysRemaining < 0;
+        if (bulkEmailCategory === "Due Soon") return s.daysRemaining >= 0 && s.daysRemaining <= 7;
+        if (bulkEmailCategory === "Not Started") return s.walkthroughComplete === 0;
+        if (bulkEmailCategory === "Needs Practice") return s.needsPractice;
+        return false;
+      })
+      .map(s => Number(s.id));
+
+    sendMessage.mutate(
+      { subject: `${bulkEmailCategory} Reminder`, body: bulkEmailText, recipient_ids: recipientIds },
+      { onSuccess: () => { setBulkEmailSent(true); setTimeout(() => { setBulkEmailSent(false); setBulkEmailOpen(false); setBulkEmailText(""); }, 2000); } }
+    );
   };
 
   const getBulkCount = () => {

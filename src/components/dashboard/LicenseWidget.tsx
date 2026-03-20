@@ -1,13 +1,18 @@
 import { useState } from "react";
 import { KeyRound, ShoppingCart, Upload, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { summaryStats } from "@/data/mockData";
+import { summaryStats as mockSummaryStats } from "@/data/mockData";
+import { useLicenseStats } from "@/hooks/useLicenses";
 import BatchUploadModal from "./BatchUploadModal";
 
 const LicenseWidget = () => {
   const [batchOpen, setBatchOpen] = useState(false);
+  const { data: apiLicenseStats } = useLicenseStats();
+  const summaryStats = apiLicenseStats
+    ? { licensesUsed: apiLicenseStats.used, licensesTotal: apiLicenseStats.total }
+    : mockSummaryStats;
   const { licensesUsed, licensesTotal } = summaryStats;
-  const usagePercent = Math.round((licensesUsed / licensesTotal) * 100);
+  const usagePercent = licensesTotal > 0 ? Math.round((licensesUsed / licensesTotal) * 100) : 0;
 
   return (
     <>

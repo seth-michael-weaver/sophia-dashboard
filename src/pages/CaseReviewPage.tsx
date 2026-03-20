@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { patientCases, errorTypes, type PatientCase } from "@/data/mockData";
+import { patientCases as mockPatientCases, errorTypes as mockErrorTypes, type PatientCase } from "@/data/mockData";
+import { usePatientCases } from "@/hooks/useCases";
+import { useErrorTypes } from "@/hooks/useErrors";
 import { ClipboardList, ArrowUpDown, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -18,6 +20,11 @@ const difficultyBadge = {
 };
 
 const CaseReviewPage = () => {
+  const { data: apiCases } = usePatientCases();
+  const { data: apiErrorTypes } = useErrorTypes();
+  const patientCases = apiCases ?? mockPatientCases;
+  const errorTypes = apiErrorTypes ?? mockErrorTypes;
+
   const [activeErrors, setActiveErrors] = useState<string[]>([]);
   const [activeDifficulty, setActiveDifficulty] = useState("");
   const [activeCaseId, setActiveCaseId] = useState<number | null>(null);
